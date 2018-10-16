@@ -557,7 +557,7 @@ def learn_model(params,trainX1,trainX2,trainY,testX1,testX2,testY):
         return(A.eval(),
                omega.eval(),
                fout.eval(feed_dict={X1: add_dim(np.angle(np.exp(1j*testX1))), X2: testX2, y: testY}),
-               K.eval())
+               K.eval(),error_val)
 
 def remove_diagonal(A,remtype=0):
     ''' 

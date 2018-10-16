@@ -4,9 +4,11 @@ Code to identify the coupling network from time-series for coupled oscillators
 
 In this project, we simulate a network of coupled oscillators  governed by the Kuramoto model. Then we use simple convolutional neural network to learn the parameters of the model from the simulated data.
 
-This folder contains two python files:
-1. learn_kuramoto_files.py: has auxiliary functions for generating data, analyzing results (you should not need to modify this)
+This folder contains the following python files:
+1. learn_kuramoto_files.py: auxiliary functions for generating data, analyzing results (you should not need to modify this)
 2. run_kuramoto_learn.py: script with loop to generate results and save them to file
+3. plot_learning_results.py: auxiliary functions plotting results
+4. plot_results.ipynb: a jupyter notebook for loading and plotting results
 
 You may want to edit the second file to change the parameters. You can do this with a text editor or IDE like IDLE or spyder (my python IDE of choice). Once you are satisfied, save the file.
 

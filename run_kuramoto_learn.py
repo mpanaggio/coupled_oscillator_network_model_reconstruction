@@ -49,7 +49,7 @@ dt=0.1     # time step for numerical solution
 tmax=20.0    # maximum time for numerical solution
 noise_level=0.0 # post solution noise added
 num_repeats=20 # number of restarts for numerical solution
-num_attempts=5 # number of times to attempt to learn from data
+num_attempts=10 # number of times to attempt to learn from data
 ## Note: the  loop parameter value will overwrite the value above
 
 
@@ -58,7 +58,7 @@ num_attempts=5 # number of times to attempt to learn from data
 w_df=pd.DataFrame()
 f_df=pd.DataFrame()
 A_df=pd.DataFrame()
-
+error_dict={}
 ##############################################################################
 for k,parameter in zip(range(len(loop_parameter_list)),loop_parameter_list):
 ## save parameter
@@ -98,7 +98,7 @@ for k,parameter in zip(range(len(loop_parameter_list)),loop_parameter_list):
             old_phases,new_phases,split_frac=0.8)
 ## learn from data
     for attempt in range(num_attempts):
-        predA,predw,fout,K=lk.learn_model(learning_params,trainX1,trainX2,trainY,testX1,testX2,testY)
+        predA,predw,fout,K,error_val=lk.learn_model(learning_params,trainX1,trainX2,trainY,testX1,testX2,testY)
         
         
     ## display results
@@ -107,13 +107,15 @@ for k,parameter in zip(range(len(loop_parameter_list)),loop_parameter_list):
         w_res=lk.evaluate_w(predw,system_params, print_results=print_results)
         f_res=lk.evaluate_f(testX1,fout,K,system_params, print_results=print_results,show_plots=show_plots)
         A_res=lk.evaluate_A(predA,system_params, proportion_of_max=0.9,print_results=print_results,show_plots=show_plots)
+        
     ## save results to dataframe
         w_df[str(loop_parameter)+' = '+ str(parameter) + ', run =' + str(attempt)]=w_res
         f_df[str(loop_parameter)+' = '+ str(parameter) + ', run =' + str(attempt)]=f_res
         A_df[str(loop_parameter)+' = '+ str(parameter) + ', run =' + str(attempt)]=A_res
-
+        error_dict[str(loop_parameter)+' = '+ str(parameter) + ', run =' + str(attempt)]=error_val
 ##############################################################################
 ## save results to ssv
     w_df.to_csv('frequency_results_'+ filename_suffix+'.csv')
     f_df.to_csv('coupling_function_results_'+ filename_suffix +'.csv')
     A_df.to_csv('adjacency_matrix_results_'+ filename_suffix +'.csv')
+    pd.DataFrame(pd.Series(error_dict)).T.to_csv('validation_error_results_'+ filename_suffix +'.csv')
