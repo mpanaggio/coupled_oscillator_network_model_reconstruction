@@ -25,8 +25,8 @@ imp.reload(lk)
 #                    'lambda x: signal.sawtooth(2*x)'
 #                    ]
 
-loop_parameter='p_erdos_renyi'#'p_erdos_renyi' # choose from names of variables below
-loop_parameter_list=[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9] 
+loop_parameter='num_repeats'#'p_erdos_renyi' # choose from names of variables below
+loop_parameter_list=[30] #[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9] 
 
 ##############################################################################
 ## define file name

@@ -529,7 +529,7 @@ def learn_model(params,trainX1,trainX2,trainY,testX1,testX2,testY):
         
     ## compute error to be displayed (currently ignores regularization terms)
     with tf.name_scope("eval"):
-        error=loss_sse(ypred,y,A,c) 
+        error=loss_sse(ypred,y,A,np.array([0.0,0.0])) # no Aij error away from 0,1
         
     
     init=tf.global_variables_initializer()
