@@ -25,8 +25,8 @@ imp.reload(lk)
 #                    'lambda x: signal.sawtooth(2*x)'
 #                    ]
 
-loop_parameter='num_repeats'#'p_erdos_renyi' # choose from names of variables below
-loop_parameter_list=[5] #[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9] 
+loop_parameter='p_erdos_renyi' # choose from names of variables below
+loop_parameter_list=[0.5]#,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9] 
 
 ##############################################################################
 ## define file name
@@ -37,19 +37,20 @@ filename_suffix=str(loop_parameter) +'_sweep_'+ str(timestr)
 ## define model parameters
 num_osc=10
 mu_freq=0.0  # mean natural frequency
-sigma_freq=0.1  # std natural frequency
+sigma_freq=0.5 # std natural frequency
 p_erdos_renyi=0.5  # probability of connection for erdos renyi
 random_seed=-1 # -1 to ignore
-coupling_function=lambda x: np.sin(x)  # Gamma from kuramoto model
+coupling_function=lambda x: np.abs(np.sin(x))  # Gamma from kuramoto model
 #coupling_function=lambda x: np.sin(x-0.2)+0.1*np.cos(2*x) # Gamma from kuramoto model
 
 ##############################################################################
 ## define numerical solution parameters
-dt=0.1     # time step for numerical solution
+dt=2.0     # time step for numerical solution
 tmax=20.0    # maximum time for numerical solution
 noise_level=0.0 # post solution noise added
-num_repeats=20 # number of restarts for numerical solution
+num_repeats=200 # number of restarts for numerical solution
 num_attempts=10 # number of times to attempt to learn from data
+method='rk4' #'rk2','rk4','euler',
 ## Note: the  loop parameter value will overwrite the value above
 
 
@@ -84,11 +85,12 @@ for k,parameter in zip(range(len(loop_parameter_list)),loop_parameter_list):
     
     learning_params={'learning_rate': 0.005,
                      'n_epochs': 300, #400
-                     'batch_size':500,
+                     'batch_size':100,#500,
                      'n_oscillators':num_osc,
                      'dt': dt,
                      'n_coefficients': 20,
-                     'reg':0.0001
+                     'reg':0.0001,
+                     'prediction_method': method,
                      }
     
 ## generate training data

@@ -418,7 +418,8 @@ def single_network(X,params):
                               activation=None,
                               name="fourier0",
                               kernel_regularizer=regularizer,
-                              use_bias=False
+                              use_bias=False,
+                              reuse=tf.AUTO_REUSE
                              )
     return tf.cast(tf.squeeze(fout),tf.float32)
 
@@ -449,6 +450,24 @@ def fourier_terms(X,N):
         Xmerged=tf.concat([Xmerged,tf.sin(n*X),tf.cos(n*X)],axis=3)
     return Xmerged
 
+
+def get_diff_tensor(y,params):
+    '''
+    get_diff_tensor(y):
+        Compute pairwise phase differences (similar to get_diff_mat)
+    
+    Inputs:
+    y: tensorflow tensor (?,n_oscillators)
+    
+    Outputs:
+    finaldiffmat: (?,n_oscillators,n_oscillators,1)
+    '''
+    n_oscillators=params['n_oscillators']
+    finaldiffmat=tf.reshape(y,[-1,n_oscillators,1,1])-tf.reshape(y,[-1,1,n_oscillators,1])
+    #print(finaldiffmat.get_shape())
+    return finaldiffmat
+
+
 def learn_model(params,trainX1,trainX2,trainY,testX1,testX2,testY):
     '''
     learn_model(params,trainX1,trainX2,trainY,testX1,testX2,testY):
@@ -478,7 +497,7 @@ def learn_model(params,trainX1,trainX2,trainY,testX1,testX2,testY):
     n_epochs=params['n_epochs']
     batch_size=params['batch_size']
     n_oscillators=params['n_oscillators']
-    
+    method=params['prediction_method']
     # contruct model
     tf.reset_default_graph()
 
@@ -512,7 +531,23 @@ def learn_model(params,trainX1,trainX2,trainY,testX1,testX2,testY):
     v,fout=get_vel(A,omega,K,X1,params)
     
     ## compute predicitions
-    ypred=predict_phases(X2,v,params)
+    
+    if method=='rk2':
+        k1=params['dt']*v
+        k2=params['dt']*get_vel(A,omega,K,get_diff_tensor(X2+k1/2.0,params),params)[0] # compute improved velocity prediction
+        ypred=X2+k2
+    elif method=='rk4':
+        k1=params['dt']*v
+        k2=params['dt']*get_vel(A,omega,K,get_diff_tensor(X2+k1/2.0,params),params)[0]
+        k3=params['dt']*get_vel(A,omega,K,get_diff_tensor(X2+k2/2.0,params),params)[0]
+        k4=params['dt']*get_vel(A,omega,K,get_diff_tensor(X2+k3,params),params)[0]
+        ypred=X2+1/6.0*k1+1/3.0*k2+1/3.0*k3+1/6.0*k4
+    elif method=='euler':
+        ypred=predict_phases(X2,v,params)
+    else:
+        print('Invalid prediction method. Using default of Euler.')
+        ypred=predict_phases(X2,v,params)
+
     
     ## compute regularization terms for neural network weights
     l2_loss = tf.losses.get_regularization_loss()
