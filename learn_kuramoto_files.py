@@ -13,7 +13,7 @@ import tensorflow as tf
 import pandas as pd
 import warnings
 from sklearn.metrics import roc_curve, auc, f1_score
-
+from inspect import getsourcelines
 
 
 def random_erdos_renyi_network(num_osc,p_value=0.5,seed=-1):
@@ -575,7 +575,6 @@ def learn_model(params,trainX1,trainX2,trainY,testX1,testX2,testY):
         init.run()
 
         ## loop for batch gradient descent
-        print('Now learning parameters:')
         for epoch in range(n_epochs):
             for X1_batch,X2_batch, y_batch in shuffle_batch(add_dim(trainX1), trainX2,trainY, batch_size):
                 sess.run(training_op, feed_dict={X1: X1_batch, X2: X2_batch, y: y_batch})
@@ -584,7 +583,7 @@ def learn_model(params,trainX1,trainX2,trainY,testX1,testX2,testY):
             ## display results every 20 epochs
             if epoch % 20==0:
                 print('',end='\n')
-                print("Epoch:",epoch, "Batch error:", error_batch, "Val error:", error_val)
+                print("Epoch:",epoch, "Batch error:", error_batch, "Val error:", error_val,end='')
             else:
                 print('.',end='')
                 #print(tf.trainable_variables())
@@ -796,3 +795,27 @@ def evaluate_A(predA,system_params, print_results=True,show_plots=False, proport
     
 
     return A_res
+
+def add_run_info(res,labels,values,to_str=False):
+    ''' 
+    add_run_info(res,labels,values):
+        add run information to results series
+    Inputs:
+    res: series with run results
+
+    labels: list of strings for information to add
+    
+    value:  list of values corresponding to each of the labels
+    
+    Outputs:
+    res: original series with additional rows
+    
+    '''
+    for lab,val in zip(labels,values):
+        if callable(val): # if function convert to string and remove comments
+            val=getsourcelines(val)[0][0].split('#')[0]
+        if to_str: # option to replace value with formatted string
+            res[lab]=str(val).replace('\n',';') # replace newline with semicolor to make it possible to write to file
+        else:
+            res[lab]=val
+    return res
