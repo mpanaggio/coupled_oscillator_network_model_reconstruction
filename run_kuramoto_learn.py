@@ -136,4 +136,4 @@ for k,parameter in zip(range(len(loop_parameter_list)),loop_parameter_list):
         f_df.to_excel('coupling_function_results_'+ filename_suffix +'.xlsx')
         A_df.to_excel('adjacency_matrix_results_'+ filename_suffix +'.xlsx')
         p_df.to_excel('parameter_information_'+ filename_suffix +'.xlsx')
-        pd.DataFrame(pd.Series(error_dict)).T.to_csv('validation_error_results_'+ filename_suffix +'.xlsx')
+        pd.DataFrame(pd.Series(error_dict)).T.to_excel('validation_error_results_'+ filename_suffix +'.xlsx')
