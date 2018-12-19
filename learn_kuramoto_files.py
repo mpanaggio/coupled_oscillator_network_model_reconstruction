@@ -15,6 +15,7 @@ import warnings
 from sklearn.metrics import roc_curve, auc, f1_score
 from inspect import getsourcelines
 
+import run_kuramoto_learn 
 
 def random_erdos_renyi_network(num_osc,p_value=0.5,seed=-1):
     ''' 
@@ -813,7 +814,7 @@ def add_run_info(res,labels,values,to_str=False):
     '''
     for lab,val in zip(labels,values):
         if callable(val): # if function convert to string and remove comments
-            val=getsourcelines(val)[0][0].split('#')[0]
+            pass #val=getsourcelines(val)[0][0].split('#')[0]
         if to_str: # option to replace value with formatted string
             res[lab]=str(val).replace('\n',';') # replace newline with semicolor to make it possible to write to file
         else:
