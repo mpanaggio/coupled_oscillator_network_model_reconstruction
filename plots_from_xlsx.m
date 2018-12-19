@@ -1,9 +1,8 @@
-close all
 %pkg load io   % load I/O package for xlsread, needed in Octave only
 
 % define loop_parameter and date/time (for correct filename)
-runtype = 'noise_level';
-runtime = '20181218-141521';
+runtype = 'num_repeats';
+runtime = '20181214-193333';
 
 % read in the 5 files generated
 [Anum,Atxt,Araw] = xlsread(strcat('adjacency_matrix_results_',runtype,'_sweep_',runtime,'.xlsx'));
@@ -44,7 +43,7 @@ loop_parameter = params(1).loop_parameter;
 % initialize
 i = 1; ind_max = length(params);
 curr_param = params(1).parameter; curr_net = 1; % first network
-keep_index = []; ind_to_keep = 0; best_val = inf;
+keep_index = []; ind_to_keep = 0; best_val = Inf;
 
 
 while i <= ind_max % step through all runs
@@ -78,19 +77,14 @@ keep_index = [keep_index ind_to_keep]; % the last network's best attempt
 
 
 % plot any desired results from the best attempts
-FS=18 %fontsize
-figure, semilogx(param_vals(keep_index),ValErrors(keep_index),'b*')
-xlabel(loop_parameter,'Interpreter','none','fontsize',FS); ylabel('Validation Error','fontsize',FS);
-set(gca,'FontSize',FS)
+figure, plot(param_vals(keep_index),ValErrors(keep_index),'b*')
+xlabel(loop_parameter,'Interpreter','none'); ylabel('Validation Error');
 
 figure, plot(param_vals(keep_index),ErrorRate(keep_index),'b*')
-xlabel(loop_parameter,'Interpreter','none','fontsize',FS); ylabel('Error Rate (%)','fontsize',FS);
-set(gca,'FontSize',FS)
+xlabel(loop_parameter,'Interpreter','none'); ylabel('Error Rate (%)');
 
 figure, plot(param_vals(keep_index),Freq_MeanAbsDev(keep_index),'b*')
-xlabel(loop_parameter,'Interpreter','none','fontsize',FS); ylabel('Mean Absolute Deviation of Frequencies','fontsize',FS);
-set(gca,'FontSize',FS)
+xlabel(loop_parameter,'Interpreter','none'); ylabel('Mean Absolute Deviation of Frequencies');
 
 figure, plot(param_vals(keep_index),Gamma_Areas(keep_index),'b*')
-xlabel(loop_parameter,'Interpreter','none','fontsize',FS); ylabel('Area between Est./Actual Coupling Functions','fontsize',FS);
-set(gca,'FontSize',FS)
+xlabel(loop_parameter,'Interpreter','none'); ylabel('Area between Est./Actual Coupling Functions');
