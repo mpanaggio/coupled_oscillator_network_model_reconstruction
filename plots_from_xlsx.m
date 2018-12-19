@@ -43,7 +43,7 @@ loop_parameter = params(1).loop_parameter;
 % initialize
 i = 1; ind_max = length(params);
 curr_param = params(1).parameter; curr_net = 1; % first network
-keep_index = []; ind_to_keep = 0; best_val = 1;
+keep_index = []; ind_to_keep = 0; best_val = Inf;
 
 
 while i <= ind_max % step through all runs
