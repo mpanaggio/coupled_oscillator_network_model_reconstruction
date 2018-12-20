@@ -13,9 +13,8 @@ import tensorflow as tf
 import pandas as pd
 import warnings
 from sklearn.metrics import roc_curve, auc, f1_score
-from inspect import getsourcelines
+#from inspect import getsourcelines
 
-import run_kuramoto_learn 
 
 def random_erdos_renyi_network(num_osc,p_value=0.5,seed=-1):
     ''' 
