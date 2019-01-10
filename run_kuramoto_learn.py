@@ -10,6 +10,7 @@ import numpy as np
 import importlib as imp
 import pandas as pd
 import time
+from scipy import signal
 imp.reload(lk)
 
 ##############################################################################
