@@ -16,14 +16,15 @@ imp.reload(lk)
 ##############################################################################
 ## define loop parameters
 
-loop_parameter='coupling_function' # choose from names of variables below
-loop_parameter_list=['lambda x: np.sin(x)', 
-                     'lambda x: np.sin(x-0.1)',
-                     'lambda x: 0.383+1.379*np.sin(x+3.93)+0.568*np.sin(2*x+0.11)+0.154*np.sin(3*x+2.387)',
-                     'lambda x: np.sign(np.sin(x-np.pi/4))',
-                     'lambda x: signal.sawtooth(x)'
-                    ]
-
+#loop_parameter='coupling_function' # choose from names of variables below
+#loop_parameter_list=[#'lambda x: np.sin(x)', 
+                     #'lambda x: np.sin(x-0.1)',
+                     #'lambda x: 0.383+1.379*np.sin(x+3.93)+0.568*np.sin(2*x+0.11)+0.154*np.sin(3*x+2.387)',
+                     #'lambda x: np.sign(np.sin(x-np.pi/4))',
+                     #'lambda x: signal.sawtooth(x)'
+                    #]
+loop_parameter='velocity_fit'
+loop_parameter_list=[True,False]
 #loop_parameter='p_erdos_renyi' # choose from names of variables below
 #%loop_parameter_list=[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9] 
 
@@ -41,10 +42,10 @@ filename_suffix=str(loop_parameter) +'_sweep_'+ str(timestr)
 ## define model parameters
 num_osc=10
 mu_freq=0.0  # mean natural frequency
-sigma_freq=0.5 # std natural frequency
+sigma_freq=0.01 # std natural frequency
 p_erdos_renyi=0.5  # probability of connection for erdos renyi
 random_seed=-1 # -1 to ignore
-coupling_function=lambda x: np.sin(x-0.1)#+0.1*np.sin(2*(x+0.2))   # Gamma from kuramoto model
+coupling_function=lambda x: np.sin(x)#+0.1*np.sin(2*(x+0.2))   # Gamma from kuramoto model
 #coupling_function=lambda x: np.sin(x-0.2)+0.1*np.cos(2*x) # Gamma from kuramoto model
 
 ##############################################################################
@@ -52,10 +53,12 @@ coupling_function=lambda x: np.sin(x-0.1)#+0.1*np.sin(2*(x+0.2))   # Gamma from 
 dt=0.1     # time step for numerical solution
 tmax=20.0    # maximum time for numerical solution
 noise_level=0.0 # post solution noise added
+dynamic_noise_level=0.00001
 num_repeats=10 # number of restarts for numerical solution
-num_attempts=5 # number of times to attempt to learn from data for each network
-num_networks=10 # number of different networks for each parameter value
-method='euler' #'rk2','rk4','euler',
+num_attempts=1#5 # number of times to attempt to learn from data for each network
+num_networks=1#10 # number of different networks for each parameter value
+method='rk2' #'rk2','rk4','euler',
+with_vel=True
 ## Note: the  loop parameter value will overwrite the value above
 
 
@@ -82,25 +85,34 @@ for k,parameter in zip(range(len(loop_parameter_list)),loop_parameter_list):
         solution_params={'dt':dt,
                          'tmax':tmax,
                          'noise': noise_level,
+                         'dynamic noise': dynamic_noise_level,
                          'ts_skip': 1, # don't skip timesteps
                          'num_repeats': num_repeats
                          }
         
         learning_params={'learning_rate': 0.005,
-                         'n_epochs': 600, #400
+                         'n_epochs': 300, #400
                          'batch_size':500,#500,
                          'n_oscillators':num_osc,
                          'dt': dt,
-                         'n_coefficients': 20,
+                         'n_coefficients': 5,
                          'reg':0.0001,
                          'prediction_method': method,
+                         'velocity_fit': with_vel
                          }
         
     ## generate training data
-        old_phases,new_phases=lk.generate_data(system_params,
+        if learning_params['velocity_fit']:
+            phases,vel=lk.generate_data_vel(system_params,
+                                                   solution_params)
+            trainX1,trainX2,trainY,testX1,testX2,testY=lk.get_training_testing_data(
+                phases,vel,split_frac=0.8)
+        else:
+            old_phases,new_phases=lk.generate_data(system_params,
                                                solution_params)
-        trainX1,trainX2,trainY,testX1,testX2,testY=lk.get_training_testing_data(
-                old_phases,new_phases,split_frac=0.8)
+            trainX1,trainX2,trainY,testX1,testX2,testY=lk.get_training_testing_data(
+                    old_phases,new_phases,split_frac=0.8)
+        #print(trainX1,trainX2,trainY)
     ## learn from data
         for attempt in range(1,num_attempts+1):
             print('******************************************************************')
@@ -112,12 +124,12 @@ for k,parameter in zip(range(len(loop_parameter_list)),loop_parameter_list):
             print('Fit attempt {} out of {}'.format(attempt,num_attempts))
             print('')
             print('Now learning parameters:')
-            predA,predw,fout,K,error_val=lk.learn_model(learning_params,trainX1,trainX2,trainY,testX1,testX2,testY)
+            predA,predw,fout,K,error_val=lk.learn_model_vel(learning_params,trainX1,trainX2,trainY,testX1,testX2,testY)
             
             
         ## display results
             print_results=True
-            show_plots=False
+            show_plots=True
             w_res=lk.evaluate_w(predw,system_params, print_results=print_results)
             f_res=lk.evaluate_f(testX1,fout,K,system_params, print_results=print_results,show_plots=show_plots)
             A_res=lk.evaluate_A(predA,system_params, proportion_of_max=0.9,print_results=print_results,show_plots=show_plots)
