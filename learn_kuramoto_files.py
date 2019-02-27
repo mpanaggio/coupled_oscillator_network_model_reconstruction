@@ -104,7 +104,10 @@ def solve_kuramoto_ode(dt,params,tmax=500.0):
     ''' 
     num_osc=params['w'].shape[0]
     tmin=0.0 # start time
-    IC=np.array(2.0*np.pi*np.random.rand(num_osc)) # initial condition
+    if 'IC' in params.keys():
+        IC=params['IC']
+    else:
+        IC=np.array(2.0*np.pi*np.random.rand(num_osc)) # initial condition
     numsteps=int(np.round((tmax-tmin)/dt)) # number of steps to take
     t_eval=np.linspace(tmin,tmax,numsteps+1)
     sol=solve_ivp(partial(dydt_kuramoto,params=params), 
@@ -139,7 +142,10 @@ def solve_kuramoto_ode_with_noise(dt,params,tmax=500.0,D=0.0):
     ''' 
     num_osc=params['w'].shape[0]
     tmin=0.0 # start time
-    IC=np.array(2.0*np.pi*np.random.rand(num_osc)) # initial condition
+    if 'IC' in params.keys():
+        IC=params['IC']
+    else:
+        IC=np.array(2.0*np.pi*np.random.rand(num_osc)) # initial condition
     numsteps=int(np.round((tmax-tmin)/dt)) # number of steps to take
     t_eval=np.linspace(tmin,tmax,numsteps+1)
     
@@ -259,7 +265,23 @@ def generate_data(system_params,solution_params={'dt': 0.1,
     skip=solution_params['ts_skip']
     noise=solution_params['noise']
     D=solution_params['dynamic noise']
+    
+    keep_final=False
+    if ('IC' in system_params.keys()):
+        if isinstance(system_params['IC'],dict):
+            perturbation_params=system_params['IC']
+            keep_final=True
+            
+        
     for k in range(num_repeats): # solve system n_repeats times and combine
+        if keep_final and k>0:
+            lasty=y[-1,:]
+            lasty=lasty-int(lasty.mean()/(2*np.pi))*2*np.pi
+            pert=get_perturbation(lasty,perturbation_params,system_params)
+            print("Repeat {}, phase perturbation: {}".format(k,pert.squeeze()))
+            system_params['IC']=lasty.squeeze()+pert.squeeze()
+        elif keep_final:
+            system_params['IC']=perturbation_params['IC']
         if D>0:
             t,y=solve_kuramoto_ode_with_noise(dt,system_params,tmax=tmax,D=D)
         else:
@@ -277,6 +299,25 @@ def generate_data(system_params,solution_params={'dt': 0.1,
             old=np.vstack((old,old_tmp[range(0,n_ts,skip),:]))
             new=np.vstack((new,new_tmp[range(0,n_ts,skip),:]))
     return old, new
+def get_perturbation(y,perturbation_params,system_params):
+    
+    num_osc=system_params['w'].shape[0]
+    pert=np.zeros(num_osc)
+    #print(perturbation_params)
+    ## we can either perturb a particular set of oscillators or a randomly selected set.
+    if perturbation_params['selection']=='fixed':
+        inds=perturbation_params['indices']
+    else:
+        inds=np.random.choice(range(num_osc),size=perturbation_params['num2perturb'],replace=False)
+    ## we can either perturb by resetting phases to 0 or by adding a random perturbation
+    #print(inds)
+    if perturbation_params['type']=='reset':
+        pert[inds]=-y[inds]
+    else:
+        pert[inds]+=np.random.randn(len(inds))*perturbation_params['size']
+    
+    return pert.reshape(1,-1)
+    
 def central_diff(t,y,with_filter=True,truncate=True,return_phases=True):
     '''
     central_diff(t,y,with_filter,truncate):
@@ -344,11 +385,28 @@ def generate_data_vel(system_params,solution_params={'dt': 0.1,
     skip=solution_params['ts_skip']
     noise=solution_params['noise']
     D=solution_params['dynamic noise']
+    
+    keep_final=False
+    if ('IC' in system_params.keys()):
+        if isinstance(system_params['IC'],dict):
+            perturbation_params=system_params['IC']
+            keep_final=True
+    #print(keep_final)
+    
     for k in range(num_repeats): # solve system n_repeats times and combine
+        if keep_final and k>0:
+            lasty=y[-1,:]
+            lasty=lasty-int(lasty.mean()/(2*np.pi))*2*np.pi
+            pert=get_perturbation(lasty,perturbation_params,system_params)
+            print("Repeat {}, phase perturbation: {}".format(k,pert.squeeze()))
+            system_params['IC']=lasty.squeeze()+pert.squeeze()
+        elif keep_final:
+            system_params['IC']=perturbation_params['IC']
         if D>0:
             t,y=solve_kuramoto_ode_with_noise(dt,system_params,tmax=tmax,D=D)
         else:
             t,y=solve_kuramoto_ode(dt,system_params,tmax=tmax)
+            
         y=y+noise*np.random.randn(y.shape[0],y.shape[1])
         deriv,phases=central_diff(t,y,with_filter=True,truncate=False,return_phases=True)
         n_ts=len(t)-2

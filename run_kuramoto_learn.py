@@ -12,6 +12,8 @@ import pandas as pd
 import time
 from scipy import signal
 imp.reload(lk)
+import warnings
+warnings.filterwarnings("ignore")
 
 ##############################################################################
 ## define loop parameters
@@ -40,9 +42,9 @@ filename_suffix=str(loop_parameter) +'_sweep_'+ str(timestr)
 
 ##############################################################################
 ## define model parameters
-num_osc=10
-mu_freq=0.0  # mean natural frequency
-sigma_freq=0.01 # std natural frequency
+num_osc=25
+mu_freq=0.01  # mean natural frequency
+sigma_freq=0.0001 # std natural frequency
 p_erdos_renyi=0.5  # probability of connection for erdos renyi
 random_seed=-1 # -1 to ignore
 coupling_function=lambda x: np.sin(x)#+0.1*np.sin(2*(x+0.2))   # Gamma from kuramoto model
@@ -51,10 +53,10 @@ coupling_function=lambda x: np.sin(x)#+0.1*np.sin(2*(x+0.2))   # Gamma from kura
 ##############################################################################
 ## define numerical solution parameters
 dt=0.1     # time step for numerical solution
-tmax=20.0    # maximum time for numerical solution
+tmax=5.0    # maximum time for numerical solution
 noise_level=0.0 # post solution noise added
-dynamic_noise_level=0.00001
-num_repeats=10 # number of restarts for numerical solution
+dynamic_noise_level=0.000000
+num_repeats=20 # number of restarts for numerical solution
 num_attempts=1#5 # number of times to attempt to learn from data for each network
 num_networks=1#10 # number of different networks for each parameter value
 method='rk2' #'rk2','rk4','euler',
@@ -77,11 +79,18 @@ for k,parameter in zip(range(len(loop_parameter_list)),loop_parameter_list):
     for network in range(1,num_networks+1):
     ## create parameter dictionaries
         system_params={'w': lk.random_natural_frequencies(num_osc,mu=mu_freq,sigma=sigma_freq,seed=random_seed),
-                'A': lk.random_erdos_renyi_network(num_osc,p_value=p_erdos_renyi,seed=random_seed),
-                'K': 1.0,
-                'Gamma': coupling_function,
-                'other': str(parameter)
-                }
+                    'A': lk.random_erdos_renyi_network(num_osc,p_value=p_erdos_renyi,seed=random_seed),
+                    'K': 1.0,
+                    'Gamma': coupling_function,
+                    'other': str(parameter),
+                    #'IC': 0*np.random.rand(num_osc)*np.pi*2, # fixed initial condition for each repeat
+                    'IC': {'type': 'reset', # reset (set phase to 0) or random
+                           'selection': 'random', #fixed or random                           
+                           'indices': range(1), # list of integers, indices to perturb, used only when selection='fixed' 
+                           'num2perturb': 3,  # integer used only when selection is random
+                           'size': 1, # float, std for perturbation, used only when type='random'
+                           'IC': 0*np.random.rand(num_osc)*np.pi*2} # initical condition for first repeat
+                     }
         solution_params={'dt':dt,
                          'tmax':tmax,
                          'noise': noise_level,
@@ -92,7 +101,7 @@ for k,parameter in zip(range(len(loop_parameter_list)),loop_parameter_list):
         
         learning_params={'learning_rate': 0.005,
                          'n_epochs': 300, #400
-                         'batch_size':500,#500,
+                         'batch_size':100,#500,
                          'n_oscillators':num_osc,
                          'dt': dt,
                          'n_coefficients': 5,
