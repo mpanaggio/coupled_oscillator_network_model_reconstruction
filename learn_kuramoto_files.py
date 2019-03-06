@@ -4,7 +4,6 @@ Spyder Editor
 
 This is a temporary script file.
 """
-
 import numpy as np
 from scipy.integrate import solve_ivp
 from scipy import optimize
@@ -14,7 +13,11 @@ import tensorflow as tf
 import pandas as pd
 import warnings
 from sklearn.metrics import roc_curve, auc, f1_score
-#from inspect import getsourcelines
+from scipy import interpolate
+from scipy.sparse import csr_matrix, lil_matrix,vstack,hstack
+from scipy.sparse.linalg import spsolve
+import scipy.signal as sp
+
 
 
 def random_erdos_renyi_network(num_osc,p_value=0.5,seed=-1):
@@ -156,7 +159,6 @@ def solve_kuramoto_ode_with_noise(dt,params,tmax=500.0,D=0.0):
     return t,y
 
 
-from scipy import interpolate
 def solve_ivp_stochastic_rk2(dydt,T,IC,D):
 # Uses RK2 (improved Euler) with gaussian white noise
 # D is the noise level
@@ -340,8 +342,7 @@ def central_diff(t,y,with_filter=True,truncate=True,return_phases=True):
     dt=t[2:]-t[:-2]
     dy=y[2:,:]-y[:-2,:]
     deriv=dy/dt
-    if with_filter:
-        import scipy.signal as sp
+    if with_filter:        
         deriv=sp.savgol_filter(deriv, 5, 1,axis=0)
     if truncate:
         phases=y[1:-1,:]
@@ -1161,8 +1162,6 @@ def add_run_info(res,labels,values,to_str=False):
     return res
 
 # rows below are used to reproduce the results from the pikovsky paper.
-from scipy.sparse import csr_matrix, lil_matrix,vstack,hstack
-from scipy.sparse.linalg import spsolve
 
 def get_col_ind(M,N,oscillators,neighbors,harmonic=0):
     ''' 
