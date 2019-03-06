@@ -7,6 +7,7 @@ This is a temporary script file.
 
 import numpy as np
 from scipy.integrate import solve_ivp
+from scipy import optimize
 from functools import partial
 import matplotlib.pyplot as plt
 import tensorflow as tf
@@ -843,7 +844,7 @@ def learn_model_vel(params,trainX1,trainX2,trainY,testX1,testX2,testY):
     
     ## initialize variable A (Adjacency matrix) that is symmetric with 0 entries on the diagonal.
     A_rand=tf.Variable(tf.random_normal((n_oscillators,n_oscillators),
-                                        mean=0.25,
+                                        mean=0.5,
                                         stddev=1/n_oscillators),
                        name='A_rand',
                        dtype=tf.float32)
@@ -1021,7 +1022,7 @@ def evaluate_f(testX1,fout,K,system_params, print_results=True,show_plots=False)
     n_pts=1000 # points for interpolation
     
     # reshape and sort vectors
-    fout_v2=np.reshape(fout,(-1,))*K 
+    fout_v2=np.reshape(fout,(-1,))
     X1_v2=np.angle(np.exp(1j*np.reshape(testX1,(-1,))))
     X1_v3, fout_v3=(np.array(t) for t in zip(*sorted(zip(X1_v2,fout_v2))))
     
@@ -1031,8 +1032,13 @@ def evaluate_f(testX1,fout,K,system_params, print_results=True,show_plots=False)
     predF=np.interp(x_for_fout,X1_v3,fout_v3)
     correctF=system_params['Gamma'](x_for_fout)
     
+    # find best scaling for coupling function
+    area_diff_func=lambda c: np.trapz(np.abs(c*predF-correctF),x_for_fout)
+    res=optimize.minimize_scalar(area_diff_func,bounds=(-100,100))
+    c=res.x    
     # compute areas 
-    area_between_predF_correctF=np.trapz(np.abs(predF-correctF),x_for_fout)
+    
+    area_between_predF_correctF=area_diff_func(c)
     area_between_null_correctF=np.trapz(np.abs(correctF),x_for_fout)
     area_ratio=area_between_predF_correctF/area_between_null_correctF
     
@@ -1046,7 +1052,7 @@ def evaluate_f(testX1,fout,K,system_params, print_results=True,show_plots=False)
     # display results
     if show_plots:
         plt.figure()
-        plt.plot(x_for_fout,predF,'blue')
+        plt.plot(x_for_fout,c*predF,'blue')
         plt.plot(x_for_fout,correctF,'red')
         plt.xlabel(r'Phase difference $\Delta\theta$',fontsize=FS)
         plt.ylabel(r'Coupling: $\Gamma(\Delta\theta)$',fontsize=FS)
@@ -1062,7 +1068,7 @@ def evaluate_f(testX1,fout,K,system_params, print_results=True,show_plots=False)
 
 def evaluate_A(predA,system_params, print_results=True,show_plots=False, proportion_of_max=0.9):
     ''' 
-    evaluate_f(predA,system_params, print_results,show_plots):
+    evaluate_A(predA,system_params, print_results,show_plots):
         compute results for adjacency matrix estimation
     Inputs:
     predA: predicted adjacency matrix (no threshold)
@@ -1153,3 +1159,254 @@ def add_run_info(res,labels,values,to_str=False):
         else:
             res[lab]=val
     return res
+
+# rows below are used to reproduce the results from the pikovsky paper.
+from scipy.sparse import csr_matrix, lil_matrix,vstack,hstack
+from scipy.sparse.linalg import spsolve
+
+def get_col_ind(M,N,oscillators,neighbors,harmonic=0):
+    ''' 
+    get_col_ind(M,N,oscillators,neighbors,harmonic=0):
+        get column index for a given coupling pair and harmonic
+    Inputs:
+    M: number of harmonics
+    N: number of oscillators
+    oscillators: int or list of ints of oscillators to consider
+    neighbors: int or list of ints of neighboring oscillators to consider
+    harmonic: float for harmonic, 0 corresponds to the natural frequency
+    
+    Note: either oscillators or neighbors can be a list, but not both
+    
+    
+    Outputs:
+    omega_col: column for natural frequency
+    or 
+    cos_col: array of columns for cosine terms
+    sin_col: array of columns for sine terms
+    '''
+    oscillators=np.array(oscillators).reshape(1,-1)
+    neighbors=np.array(neighbors).reshape(-1,1)
+    cols_per_equation=1+2*M*(N-1)
+    if harmonic<=0:
+        omega_col=oscillators*cols_per_equation
+        return omega_col
+    else:
+        start=oscillators*cols_per_equation+1+(harmonic-1)*2*(N-1)
+        cos_col=start+neighbors
+        sin_col=cos_col+(N-1)
+        return cos_col.squeeze(),sin_col.squeeze()
+    
+    
+def get_row_ind(T,N,oscillator,timestep):
+    ''' 
+    get_row_ind(T,N,oscillator,timestep):
+        get row index given oscillator and timestep
+    Inputs:
+    T: number of timesteps
+    N: number of oscillators
+    oscillator: int for index of target oscillator
+    timestep: int for index of timestep
+    
+    Outputs:
+    ind: int for row index 
+    '''
+    return oscillator+N*timestep
+ 
+def generate_Ab(phases,vel,learning_params):
+    ''' 
+    generate_Ab(phases,vel,learning_params)
+        get linear system for estimating coupling from time series
+    Inputs:
+    phases: array of phases (rows: time, columns: oscillators)
+    vel: array of corresponding phase velocities (see above)
+    learning_params: dictionary with number of harmonics and oscillators
+    
+    Outputs:
+    A: array (N*T by N*(1+2*M(N-1))) with phase information
+    b: array(N*T by 1) with velocities
+    '''
+    M=learning_params['n_coefficients']
+    N=learning_params['n_oscillators']
+    T=phases.shape[0]
+    C=1+2*M*(N-1) #columns per equation
+    A=lil_matrix((N*T, N*C), dtype=np.float64)
+    b=vel.reshape(-1,1)
+    for oscillator in range(N):
+        for timestep in range(T):
+            row=get_row_ind(T,N,oscillator,timestep)
+            for harmonic in range(M+1):
+                if harmonic==0:  # frequency columns
+                    omega_col=get_col_ind(M,N,oscillator,neighbors=-1,harmonic=0)
+#                     print("oscillator:",oscillator,", ",end=' ')
+#                     print("timestep:",timestep,", ",end=' ')
+#                     print("harmonic:",harmonic)
+#                     print("row:", row,", ",end=' ')
+#                     print("omega col:",omega_col)
+                    A[row,omega_col]=1
+                else: # coupling columns
+                    cos_col,sin_col=get_col_ind(M,N,oscillator,neighbors=np.array(range(N-1)),harmonic=harmonic)
+#                     print("oscillator:",oscillator,", ",end=' ')
+#                     print("timestep:",timestep,", ",end=' ')
+#                     print("harmonic:",harmonic)
+#                     print("row:", row,", ",end=' ')
+#                     print("cos col:",cos_col,", ",end=' ')
+#                     print("sin col:",sin_col)
+                    dtheta=get_phase_differences(phases,oscillator,timestep,leave_out_self=True)                    
+                    A[row,cos_col]=np.cos(harmonic*dtheta)
+                    A[row,sin_col]=np.sin(harmonic*dtheta)
+    return A,b
+
+def get_phase_differences(phases,oscillator,timestep,leave_out_self=False):
+    ''' 
+    get_phase_differences(phases,oscillator,timestep,leave_out_self=False):
+        get matrix of phase differences between oscillator and all other oscillators
+    Inputs:
+    phases: array with phases for all oscillators
+    oscillator: column index for target oscillator
+    timestep: row index for target timestep
+    leave_out_self: boolean indicating whether to include phase difference with self (0)
+    
+    Outputs:
+    dtheta: vector of phase differences
+    '''    
+    theta_oscillator=phases[timestep,oscillator]
+    if leave_out_self:
+        theta_other=np.concatenate([phases[timestep,:oscillator],phases[timestep,oscillator+1:]])
+    else:
+        theta_other=phases
+    return theta_oscillator-theta_other
+
+def unpack_x(x,learning_params,thr=0.1):
+    ''' 
+    unpack_x(x,learning_params,thr=0.1):
+        decompose solution vector into meaningful components
+    Inputs:
+    x: solution vector to Ax=b generated by generate_Ab function above
+    learning_params: dictionary with number of harmonics and oscillators
+    thr: float threshold on max of coupling function for determining whether a link is present
+    show_coup_plots: boolean indicating whether to display plots of the reconstructed coupling functions
+    
+    Outputs:
+    w: reconstructed natural frequencies
+    A: reconstructed coupling matrix
+    '''
+    M=learning_params['n_coefficients']
+    N=learning_params['n_oscillators']
+    cols_per_equation=int(x.shape[0]/N)
+    
+    w=x[::cols_per_equation]
+    #print("True w:",system_params['w'].T.squeeze())
+    #print("Estimated w:",w)
+    
+    n_theta=50
+    th=np.linspace(-np.pi,np.pi,n_theta)
+    coup_vecs=np.zeros((N-1,n_theta))
+    harmonics=np.array(range(1,M+1)).reshape(-1,1)
+    A=np.zeros((N,N))
+    coup_all=0
+    num_connections_all=0
+    for oscillator in range(N):
+        cos_coef=np.zeros((N-1,M))
+        sin_coef=np.zeros((N-1,M))
+        for harmonic_ind in range(M):
+            harmonic=harmonic_ind+1
+            cos_col,sin_col=get_col_ind(M,N,oscillator,neighbors=np.array(range(N-1)),harmonic=harmonic)            
+            #print(cos_col,sin_col)
+            cos_coef[:,harmonic_ind]=x[cos_col]
+            sin_coef[:,harmonic_ind]=x[sin_col]
+        coup_vecs=cos_coef.dot(np.cos(harmonics*th))+sin_coef.dot(np.sin(harmonics*th))
+
+        amps=np.abs(N*coup_vecs).max(axis=1) # amplitudes of coupling functions
+        num_connections=(amps>thr).sum() # number of coupling terms greater than threshold
+        coup_all+=coup_vecs[amps>thr,:].sum(axis=0) 
+        num_connections_all+=num_connections
+
+        A[oscillator,:]=np.concatenate([amps[:oscillator],[0],amps[oscillator:]])
+        
+        
+    coup_all=N*coup_all/num_connections_all
+    f=interpolate.interp1d(th,coup_all,bounds_error=False)
+    return A,w,f
+
+
+def get_symmetry_constraints(learning_params):
+    ''' 
+    get_symmetry_constraints(learning_params):
+        compute matrices to enforce coupling symmetry
+    Inputs:
+    learning_params: dictionary with number of harmonics and oscillators
+
+    
+    Outputs:
+    Bmat: array for equation Bx=c
+    c:   vector for equation Bx=c
+    '''
+    M=learning_params['n_coefficients']
+    N=learning_params['n_oscillators']
+    C=1+2*M*(N-1)
+    Bmat=lil_matrix((N*(N-1)*M, N*C), dtype=np.float64)
+    c=np.zeros((N*(N-1)*M,1))
+    rowC=0
+    for harmonic in range(M):
+        # create matrices with column indices
+        cos_col=np.diag(np.nan*np.ones(N))
+        sin_col=np.diag(np.nan*np.ones(N))
+        cos_col_tmp,sin_col_tmp=get_col_ind(M,N,oscillators=range(N),neighbors=range(N-1),harmonic=harmonic+1)
+        cos_col[1:,:]=cos_col[1:,:]+np.tril(cos_col_tmp,0)
+        cos_col[:-1,:]=cos_col[:-1,:]+np.triu(cos_col_tmp,1)
+        sin_col[1:,:]=sin_col[1:,:]+np.tril(sin_col_tmp,0)
+        sin_col[:-1,:]=sin_col[:-1,:]+np.triu(sin_col_tmp,1)
+
+        for row in range(N):
+            for col in range(row):
+                Bmat[rowC,cos_col[row,col]]=1
+                Bmat[rowC,cos_col[col,row]]=-1
+                Bmat[rowC+1,sin_col[row,col]]=1
+                Bmat[rowC+1,sin_col[col,row]]=-1
+                rowC+=2 
+    return Bmat,c
+
+
+def get_combined_matrix(A,b,B=None,c=None):
+    ''' 
+    get_combined_matrix(A,b,B=None,c=None):
+        merge A, b, B, c into single matrix/vector for least squares
+    Inputs:
+    A,b: matrix and vector for Ax=b (from phases and velocities)
+    B,c: matrix and vector for Bx=c (symmetry constraint)
+
+    
+    Outputs:
+    newA: combined matrix [A^TA B^T; B 0] 
+    newB: combined vector [A^Tb; c]
+    '''
+    if (B is None) or (c is None):
+        newA=A.T.dot(A)
+        newb=A.T.dot(b)
+    else:
+        z=lil_matrix((B.shape[0],B.shape[0]))
+        newA=csr_matrix(vstack([hstack([A.T.dot(A),B.T]),hstack([B,z])]))
+        newb=csr_matrix(vstack([A.T.dot(b),c]))
+    return newA,newb
+
+def solve_system(newA,newb,learning_params):
+    ''' 
+    solve_system(newA,newb,learning_params):
+        solve sparse system of equations
+    Inputs:
+    newA: combined matrix [A^TA B^T; B 0] 
+    newB: combined vector [A^Tb; c]
+    learning_params: dictionary with number of harmonics and oscillators
+
+    
+    Outputs:
+    newA: combined matrix [A^TA B^T; B 0] 
+    newB: combined vector [A^Tb; c]
+    '''
+    M=learning_params['n_coefficients']
+    N=learning_params['n_oscillators']
+    C=1+2*M*(N-1)
+    sol=spsolve(newA,newb)
+    x=sol[:N*C] # only first part of vector corresponds to solution
+    #z=sol[N*C:]
+    return x

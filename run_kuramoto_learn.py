@@ -8,6 +8,7 @@ Created on Mon Sep 17 15:28:55 2018
 import learn_kuramoto_files as lk
 import numpy as np
 import importlib as imp
+
 import pandas as pd
 import time
 from scipy import signal
@@ -25,7 +26,7 @@ warnings.filterwarnings("ignore")
                      #'lambda x: np.sign(np.sin(x-np.pi/4))',
                      #'lambda x: signal.sawtooth(x)'
                     #]
-loop_parameter='velocity_fit'
+loop_parameter='with_pikovsky'
 loop_parameter_list=[True,False]
 #loop_parameter='p_erdos_renyi' # choose from names of variables below
 #%loop_parameter_list=[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9] 
@@ -42,25 +43,26 @@ filename_suffix=str(loop_parameter) +'_sweep_'+ str(timestr)
 
 ##############################################################################
 ## define model parameters
-num_osc=25
-mu_freq=0.01  # mean natural frequency
-sigma_freq=0.0001 # std natural frequency
+num_osc=10
+mu_freq=0.0  # mean natural frequency
+sigma_freq=0.5#0.0001 # std natural frequency
 p_erdos_renyi=0.5  # probability of connection for erdos renyi
 random_seed=-1 # -1 to ignore
-coupling_function=lambda x: np.sin(x)#+0.1*np.sin(2*(x+0.2))   # Gamma from kuramoto model
+coupling_function=lambda x: 1.379*np.sin(x+3.93)+0.568*np.sin(2*x+0.11)+0.154*np.sin(3*x+2.387)#+0.1*np.sin(2*(x+0.2))   # Gamma from kuramoto model
 #coupling_function=lambda x: np.sin(x-0.2)+0.1*np.cos(2*x) # Gamma from kuramoto model
 
 ##############################################################################
 ## define numerical solution parameters
 dt=0.1     # time step for numerical solution
-tmax=5.0    # maximum time for numerical solution
+tmax=20.0    # maximum time for numerical solution
 noise_level=0.0 # post solution noise added
 dynamic_noise_level=0.000000
-num_repeats=20 # number of restarts for numerical solution
+num_repeats=5 # number of restarts for numerical solution
 num_attempts=1#5 # number of times to attempt to learn from data for each network
 num_networks=1#10 # number of different networks for each parameter value
 method='rk2' #'rk2','rk4','euler',
 with_vel=True
+with_pikovsky=True
 ## Note: the  loop parameter value will overwrite the value above
 
 
@@ -83,13 +85,13 @@ for k,parameter in zip(range(len(loop_parameter_list)),loop_parameter_list):
                     'K': 1.0,
                     'Gamma': coupling_function,
                     'other': str(parameter),
-                    #'IC': 0*np.random.rand(num_osc)*np.pi*2, # fixed initial condition for each repeat
-                    'IC': {'type': 'reset', # reset (set phase to 0) or random
-                           'selection': 'random', #fixed or random                           
-                           'indices': range(1), # list of integers, indices to perturb, used only when selection='fixed' 
-                           'num2perturb': 3,  # integer used only when selection is random
-                           'size': 1, # float, std for perturbation, used only when type='random'
-                           'IC': 0*np.random.rand(num_osc)*np.pi*2} # initical condition for first repeat
+                    #'IC': np.random.rand(num_osc)*np.pi*2, # fixed initial condition for each repeat
+#                    'IC': {'type': 'reset', # reset (set phase to 0) or random
+#                           'selection': 'random', #fixed or random                           
+#                           'indices': range(1), # list of integers, indices to perturb, used only when selection='fixed' 
+#                           'num2perturb': 3,  # integer used only when selection is random
+#                           'size': 1, # float, std for perturbation, used only when type='random'
+#                           'IC': 0*np.random.rand(num_osc)*np.pi*2} # initical condition for first repeat
                      }
         solution_params={'dt':dt,
                          'tmax':tmax,
@@ -107,11 +109,12 @@ for k,parameter in zip(range(len(loop_parameter_list)),loop_parameter_list):
                          'n_coefficients': 5,
                          'reg':0.0001,
                          'prediction_method': method,
-                         'velocity_fit': with_vel
+                         'velocity_fit': with_vel,
+                         'pikovsky_method': with_pikovsky,
                          }
         
     ## generate training data
-        if learning_params['velocity_fit']:
+        if learning_params['velocity_fit'] or learning_params['pikovsky_method']:
             phases,vel=lk.generate_data_vel(system_params,
                                                    solution_params)
             trainX1,trainX2,trainY,testX1,testX2,testY=lk.get_training_testing_data(
@@ -133,7 +136,37 @@ for k,parameter in zip(range(len(loop_parameter_list)),loop_parameter_list):
             print('Fit attempt {} out of {}'.format(attempt,num_attempts))
             print('')
             print('Now learning parameters:')
-            predA,predw,fout,K,error_val=lk.learn_model_vel(learning_params,trainX1,trainX2,trainY,testX1,testX2,testY)
+            
+            if learning_params['pikovsky_method']:
+                with_symmetry=True
+                
+                ## training data
+                sysA,sysb=lk.generate_Ab(trainX2,trainY,learning_params)
+                if with_symmetry:
+                    symB,symc=lk.get_symmetry_constraints(learning_params)
+                    newA,newb=lk.get_combined_matrix(sysA,sysb,symB,symc)
+                else:
+                    newA,newb=lk.get_combined_matrix(sysA,sysb)
+                
+                ## results from fit
+                x_sol=lk.solve_system(newA,newb,learning_params)
+                predA,predw,coup_func=lk.unpack_x(x_sol,learning_params,thr=0.5)
+                
+                ## testing data
+                sysA_test,sysb_test=lk.generate_Ab(testX2,testY,learning_params)
+                
+                ## compute sum of squared errors
+                error_val=((sysA_test.dot(x_sol)-sysb_test)**2).mean()
+                angles=np.angle(np.exp(-1j*testX1))
+                fout=np.vectorize(coup_func)(angles)
+            else:
+                predA,predw,fout,K,error_val=lk.learn_model_vel(learning_params,trainX1,trainX2,trainY,testX1,testX2,testY)
+                if K<0:
+                    fout=fout*(-1.0)
+                K=1
+
+                
+                
             
             
         ## display results
