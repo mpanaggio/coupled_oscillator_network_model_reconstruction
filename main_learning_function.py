@@ -23,9 +23,9 @@ def kuramoto_learn_function(loop_parameter, # parameter to vary
                             tmax=20.0,    # maximum time for numerical solution
                             noise_level=0.0, # post solution noise added
                             dynamic_noise_level=0.0, # noisy dynamics
-                            num_repeats=5,  # number of restarts for numerical solution
-                            num_attempts=1, # number of times to attempt to learn from data for each network
-                            num_networks=1, # number of different networks for each parameter value
+                            num_repeats=10,  # number of restarts for numerical solution
+                            num_attempts=5, # number of times to attempt to learn from data for each network
+                            num_networks=10, # number of different networks for each parameter value
                             method='rk2', #'rk2','rk4','euler',
                             with_vel=True, # use velocity for fit
                             with_pikovsky=False, #use pikovsky method
@@ -80,9 +80,13 @@ def kuramoto_learn_function(loop_parameter, # parameter to vary
                              'ts_skip': 1, # don't skip timesteps
                              'num_repeats': input_dict['num_repeats']
                              }
+            if isinstance(input_dict['n_epochs'],list):
+                n_epochs=input_dict['n_epochs'][k]
+            else:
+                n_epochs=input_dict['n_epochs']
             
             learning_params={'learning_rate': 0.005,
-                             'n_epochs': input_dict['n_epochs'], 
+                             'n_epochs': n_epochs, 
                              'batch_size':input_dict['batch_size'],
                              'n_oscillators':input_dict['num_osc'],
                              'dt': input_dict['dt'],
@@ -109,7 +113,12 @@ def kuramoto_learn_function(loop_parameter, # parameter to vary
             for attempt in range(1,input_dict['num_attempts']+1):
                 print('******************************************************************')
                 print("Loop parameter: "+str(loop_parameter))
-                print("Current parameter value: "+str(parameter))
+                if loop_parameter=='coupling_function':  
+                    print("Current parameter value: "+ curname)
+                else:
+                    print("Current parameter value: "+str(parameter))
+                if isinstance(input_dict['n_epochs'],list):
+                    print("Epochs:",n_epochs)
                 print('')
                 print('Parameter {} out of {}'.format(k+1,len(loop_parameter_list)))
                 print('Network {} out of {}'.format(network,num_networks))
