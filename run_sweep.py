@@ -190,19 +190,19 @@ sweeps_to_run=sweeps[0:]
 for sweep in sweeps_to_run:
     print('******************************************************************')
     print("Unique to current sweep:")
-    #try:
-    print(sweep['overwrite_default_parameters'])
-    print('******************************************************************')
-    learn.kuramoto_learn_function(sweep['loop_parameter'], # parameter to vary
-                              sweep['loop_parameter_list'], # list of values for parameter
-                              **sweep['overwrite_default_parameters'])
-#    except:
-#        print('None')
-#        print('******************************************************************')
-#        learn.kuramoto_learn_function(sweep['loop_parameter'], # parameter to vary
-#                                  sweep['loop_parameter_list']) # list of values for parameter
-#    
-#    
+    try:
+        print(sweep['overwrite_default_parameters'])
+        print('******************************************************************')
+        learn.kuramoto_learn_function(sweep['loop_parameter'], # parameter to vary
+                                  sweep['loop_parameter_list'], # list of values for parameter
+                                  **sweep['overwrite_default_parameters'])
+    except:
+        print('None')
+        print('******************************************************************')
+        learn.kuramoto_learn_function(sweep['loop_parameter'], # parameter to vary
+                                  sweep['loop_parameter_list']) # list of values for parameter
+    
+    
 
     
     
