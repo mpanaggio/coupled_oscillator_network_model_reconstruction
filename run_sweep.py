@@ -29,7 +29,7 @@ sweeps=[
          {'loop_parameter': 'coupling_function',
          'loop_parameter_list':[lambda x: np.sin(x), 
                                 lambda x: np.sin(x-0.1),
-                                lambda x: 1.379*np.sin(x+3.93)+0.568*np.sin(2*x+0.11)+0.154*np.sin(3*x+2.387),
+                                lambda x: 0.383+1.379*np.sin(x+3.93)+0.568*np.sin(2*x+0.11)+0.154*np.sin(3*x+2.387),
                                 lambda x: np.sign(np.sin(x-np.pi/4))
                                 ],
          'overwrite_default_parameters': {'coupling_function_names': ['Kuramoto',
@@ -184,7 +184,7 @@ test_sweep={'loop_parameter': 'coupling_function',
             },
 
 
-sweeps_to_run=test_sweep
+sweeps_to_run=sweeps[0:]
 
 
 for sweep in sweeps_to_run:
