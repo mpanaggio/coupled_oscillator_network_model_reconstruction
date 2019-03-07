@@ -14,7 +14,7 @@ def kuramoto_learn_function(loop_parameter, # parameter to vary
                             print_results=True,
                             show_plots=False,
                             num_osc=10, # number of oscillators
-                            mu_freq=0.0, # mean natural frequency
+                            mu_freq=1.0, # mean natural frequency
                             sigma_freq=0.5,  #0.0001 # std natural frequency
                             p_erdos_renyi=0.5,  # probability of connection for erdos renyi
                             coupling_function=lambda x: np.sin(x), # coupling function
@@ -70,11 +70,15 @@ def kuramoto_learn_function(loop_parameter, # parameter to vary
                         'Gamma': input_dict['coupling_function'],
                         'Gamma string': curname,
                         'other': str(parameter)}
-            if any(IC):
-                system_params['IC']=IC
-                
+            if any(input_dict['IC']):
+                system_params['IC']=input_dict['IC']
+            if isinstance(input_dict['tmax'],list):
+                tmax=input_dict['tmax'][k]
+            else:
+                tmax=input_dict['tmax']
+            
             solution_params={'dt':input_dict['dt'],
-                             'tmax':input_dict['tmax'],
+                             'tmax':tmax,
                              'noise': input_dict['noise_level'],
                              'dynamic noise': input_dict['dynamic_noise_level'],
                              'ts_skip': 1, # don't skip timesteps
@@ -84,6 +88,7 @@ def kuramoto_learn_function(loop_parameter, # parameter to vary
                 n_epochs=input_dict['n_epochs'][k]
             else:
                 n_epochs=input_dict['n_epochs']
+        
             
             learning_params={'learning_rate': 0.005,
                              'n_epochs': n_epochs, 
@@ -119,6 +124,8 @@ def kuramoto_learn_function(loop_parameter, # parameter to vary
                     print("Current parameter value: "+str(parameter))
                 if isinstance(input_dict['n_epochs'],list):
                     print("Epochs:",n_epochs)
+                if isinstance(input_dict['tmax'],list):
+                    print("Tmax:",n_epochs)
                 print('')
                 print('Parameter {} out of {}'.format(k+1,len(loop_parameter_list)))
                 print('Network {} out of {}'.format(network,num_networks))
@@ -148,21 +155,42 @@ def kuramoto_learn_function(loop_parameter, # parameter to vary
                     error_val=((sysA_test.dot(x_sol)-sysb_test)**2).mean()
                     angles=np.angle(np.exp(-1j*testX1))
                     fout=np.vectorize(coup_func)(angles)
-                    K=1
+                    
+                    K=1/predA[predA>0.5].mean()
+
+                    
                 else:
                     predA,predw,fout,K,error_val=lk.learn_model_vel(learning_params,trainX1,trainX2,trainY,testX1,testX2,testY)
+                    
                     if K<0:
                         fout=fout*(-1.0)
-                    K=1
+                        K=-K
     
                     
                     
                 
                 
             ## display results
-                w_res=lk.evaluate_w(predw,system_params, print_results=print_results)
-                f_res=lk.evaluate_f(testX1,fout,K,system_params, print_results=print_results,show_plots=show_plots)
+                f_res,c=lk.evaluate_f(testX1,fout,K,system_params, print_results=print_results,show_plots=show_plots)
                 A_res=lk.evaluate_A(predA,system_params, proportion_of_max=0.9,print_results=print_results,show_plots=show_plots)
+                
+                ''' 
+                The coupling function is assumed to have mean 0.  
+                For functions with nonzero mean c0, the computed frequencies 
+                will be: predw=truew+K(N_j)/N*c0 rather than w where N_j is the number of 
+                links for the given oscillator.
+                
+                We therefore modify the frequencies as follows
+                '''
+                Nj=(predA/c[1]).sum(axis=0)
+                #print(Nj,c,K)
+                #print("true (w):",system_params['w'])
+                #print("original estimate (w):",predw)
+                #w_res=lk.evaluate_w(predw,system_params, print_results=print_results)
+                predw=predw-K*Nj*c[0]/input_dict['num_osc']
+                #print("revised estimate (w):",predw)
+                w_res=lk.evaluate_w(predw,system_params, print_results=print_results)
+
                 
                 w_res=lk.add_run_info(w_res,['loop_parameter','parameter','attempt','network','method'],[loop_parameter,parameter,attempt,network,method])
                 f_res=lk.add_run_info(f_res,['loop_parameter','parameter','attempt','network','method'],[loop_parameter,parameter,attempt,network,method])
@@ -172,6 +200,13 @@ def kuramoto_learn_function(loop_parameter, # parameter to vary
                 p_res=lk.add_run_info(p_res,solution_params.keys(),solution_params.values())
                 p_res=lk.add_run_info(p_res,learning_params.keys(),learning_params.values())
                 p_res=lk.add_run_info(p_res,['loop_parameter','parameter','attempt','network','method'],[loop_parameter,parameter,attempt,network,method])
+                
+                IC=input_dict['IC']
+                if any(IC):
+                    if isinstance(IC,dict):
+                        p_res=lk.add_run_info(p_res,IC.keys(),IC.values(),to_str=True)        
+                    else:
+                        p_res=lk.add_run_info(p_res,['IC (fixed)'],input_dict['IC'])        
             ## save results to dataframe
                 w_df[str(loop_parameter)+' = '+ str(parameter) + ', network ' + str(network) + ', run =' + str(attempt)]=w_res
                 f_df[str(loop_parameter)+' = '+ str(parameter) + ', network ' + str(network) + ', run =' + str(attempt)]=f_res

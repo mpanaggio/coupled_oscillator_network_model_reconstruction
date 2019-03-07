@@ -27,7 +27,7 @@ warnings.filterwarnings("ignore")
                      #'lambda x: signal.sawtooth(x)'
                     #]
 loop_parameter='with_pikovsky'
-loop_parameter_list=[True,False]
+loop_parameter_list=[False]
 #loop_parameter='p_erdos_renyi' # choose from names of variables below
 #%loop_parameter_list=[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9] 
 
@@ -48,7 +48,7 @@ mu_freq=0.0  # mean natural frequency
 sigma_freq=0.5#0.0001 # std natural frequency
 p_erdos_renyi=0.5  # probability of connection for erdos renyi
 random_seed=-1 # -1 to ignore
-coupling_function=lambda x: 1.379*np.sin(x+3.93)+0.568*np.sin(2*x+0.11)+0.154*np.sin(3*x+2.387)#+0.1*np.sin(2*(x+0.2))   # Gamma from kuramoto model
+coupling_function=lambda x: 0.383+1.379*np.sin(x+3.93)+0.568*np.sin(2*x+0.11)+0.154*np.sin(3*x+2.387)#+0.1*np.sin(2*(x+0.2))   # Gamma from kuramoto model
 #coupling_function=lambda x: np.sin(x-0.2)+0.1*np.cos(2*x) # Gamma from kuramoto model
 
 ##############################################################################
@@ -57,12 +57,12 @@ dt=0.1     # time step for numerical solution
 tmax=20.0    # maximum time for numerical solution
 noise_level=0.0 # post solution noise added
 dynamic_noise_level=0.000000
-num_repeats=5 # number of restarts for numerical solution
+num_repeats=10 # number of restarts for numerical solution
 num_attempts=1#5 # number of times to attempt to learn from data for each network
 num_networks=1#10 # number of different networks for each parameter value
 method='rk2' #'rk2','rk4','euler',
 with_vel=True
-with_pikovsky=True
+with_pikovsky=False
 ## Note: the  loop parameter value will overwrite the value above
 
 
@@ -138,7 +138,7 @@ for k,parameter in zip(range(len(loop_parameter_list)),loop_parameter_list):
             print('Now learning parameters:')
             
             if learning_params['pikovsky_method']:
-                with_symmetry=True
+                with_symmetry=False
                 
                 ## training data
                 sysA,sysb=lk.generate_Ab(trainX2,trainY,learning_params)
@@ -159,6 +159,7 @@ for k,parameter in zip(range(len(loop_parameter_list)),loop_parameter_list):
                 error_val=((sysA_test.dot(x_sol)-sysb_test)**2).mean()
                 angles=np.angle(np.exp(-1j*testX1))
                 fout=np.vectorize(coup_func)(angles)
+                K=1
             else:
                 predA,predw,fout,K,error_val=lk.learn_model_vel(learning_params,trainX1,trainX2,trainY,testX1,testX2,testY)
                 if K<0:

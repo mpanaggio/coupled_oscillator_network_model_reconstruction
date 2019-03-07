@@ -57,7 +57,7 @@ sweeps=[
          
          ## sweep: number of restarts
          {'loop_parameter': 'num_repeats',
-         'loop_parameter_list': [1,2,5,10,20,50],
+         'loop_parameter_list': [1,2,5,10,20,40],
          'overwrite_default_parameters': {'n_epochs': [10000,5000,2000,1000,500,200]}
          },
          
@@ -84,40 +84,125 @@ sweeps=[
 ###############################################################################
          ## sweep: number of restarts (with pikovsky)
          {'loop_parameter': 'num_repeats',
-         'loop_parameter_list': [1,2,5,10,20,50],
+         'loop_parameter_list': [1,2,5,10,20,40],
          'overwrite_default_parameters': {'n_epochs': [10000,5000,2000,1000,500,200],
                                           'with_pikovsky':True},
          },
-         
+                                
         ]
+###############################################################################
+## perturbation sweeps to run: 
+###############################################################################
+         
+## reset perturbation, random oscillators (1,2,3)
+for num2perturb in range(1,4):
+    tmp_sweep={'loop_parameter': 'num_repeats',
+               'loop_parameter_list': [1,2,5,10,20,40],
+               'overwrite_default_parameters': {
+                       'tmax': [200.0,100.0,40.0,20.0,10.0,5.0],
+                       'with_pikovsky':False,
+                       'mu_freq': 1.0, # mean natural frequency
+                       'sigma_freq':0.0001,  #0.0001 # std natural frequency
+                       'num_osc':10,
+                       'IC': {'type': 'reset', # reset (set phase to 0) or random
+                              'selection': 'random', #fixed or random                           
+                              'indices': range(num2perturb), # list of integers, indices to perturb, used only when selection='fixed' 
+                              'num2perturb': num2perturb,  # integer used only when selection is random
+                              'size': 1, # float, std for perturbation, used only when type='random'
+                              'IC': 0*np.random.rand(10)*np.pi*2} # initical condition for first, start in sync
+                       },
+             }
+    sweeps.append(tmp_sweep)
+
+## random perturbation, fixed oscillators (1,2,3), size=[0.01,0.1,1,10]
+for pert_size in [0.01,0.1,1.0,10.0]:
+    for num2perturb in range(1,4):
+        tmp_sweep={'loop_parameter': 'num_repeats',
+                   'loop_parameter_list': [1,2,5,10,20,40],
+                   'overwrite_default_parameters': {
+                           'tmax': [200.0,100.0,40.0,20.0,10.0,5.0],
+                           'with_pikovsky':False,
+                           'mu_freq': 1.0, # mean natural frequency
+                           'sigma_freq':0.0001,  #0.0001 # std natural frequency
+                           'num_osc':10,
+                           'IC': {'type': 'random', # reset (set phase to 0) or random
+                                  'selection': 'fixed', #fixed or random                           
+                                  'indices': range(num2perturb), # list of integers, indices to perturb, used only when selection='fixed' 
+                                  'num2perturb': num2perturb,  # integer used only when selection is random
+                                  'size': pert_size, # float, std for perturbation, used only when type='random'
+                                  'IC': 0*np.random.rand(10)*np.pi*2} # initical condition for first, start in sync
+                           },
+                 }
+        sweeps.append(tmp_sweep)  
         
+## random perturbation, random oscillators (1,2,3), size=[0.01,0.1,1,10]
+for pert_size in [0.01,0.1,1.0,10.0]:
+    for num2perturb in range(1,4):
+        tmp_sweep={'loop_parameter': 'num_repeats',
+                   'loop_parameter_list': [1,2,5,10,20,40],
+                   'overwrite_default_parameters': {
+                           'tmax': [200.0,100.0,40.0,20.0,10.0,5.0],
+                           'with_pikovsky':False,
+                           'mu_freq': 1.0, # mean natural frequency
+                           'sigma_freq':0.0001,  #0.0001 # std natural frequency
+                           'num_osc':10,
+                           'IC': {'type': 'random', # reset (set phase to 0) or random
+                                  'selection': 'random', #fixed or random                           
+                                  'indices': range(num2perturb), # list of integers, indices to perturb, used only when selection='fixed' 
+                                  'num2perturb': num2perturb,  # integer used only when selection is random
+                                  'size': pert_size, # float, std for perturbation, used only when type='random'
+                                  'IC': 0*np.random.rand(10)*np.pi*2} # initical condition for first, start in sync
+                           },
+                 }
+        sweeps.append(tmp_sweep)  
+                  
 
 
 
-#loop_parameter='coupling_function' # choose from names of variables below
-#loop_parameter_list=[#'lambda x: np.sin(x)', 
-                     #'lambda x: np.sin(x-0.1)',
-                     #'lambda x: 1.379*np.sin(x+3.93)+0.568*np.sin(2*x+0.11)+0.154*np.sin(3*x+2.387)',
-                     #'lambda x: np.sign(np.sin(x-np.pi/4))',
-                     #'lambda x: signal.sawtooth(x)'
-                    #]
+## use this if you want to test out a single sweep with custom parameters
+test_sweep={'loop_parameter': 'coupling_function',
+            'loop_parameter_list':[lambda x: 0.383+1.379*np.sin(x+3.93)+0.568*np.sin(2*x+0.11)+0.154*np.sin(3*x+2.387),
+                                   lambda x: 1.379*np.sin(x+3.93)+0.568*np.sin(2*x+0.11)+0.154*np.sin(3*x+2.387)],
+            'overwrite_default_parameters': {
+                    'coupling_function_names': ['Hodgkin-Huxley','Hodgkin-Huxley (0 mean)'],
+                    'num_attempts': 1, # number of times to attempt to learn from data for each network
+                    'num_networks': 1, # number of different networks for each parameter value
+                    'num_repeats': 20, # number of different networks for each parameter value
+                    'mu_freq': 1.0, # mean natural frequency
+                    'sigma_freq':0.1,  #0.0001 # std natural frequency
+                    'show_plots':True,
+                    'save_results':True,
+                    'with_pikovsky':False,
+                    'tmax': 5, # number of different networks for each parameter value
+                    'IC': {'type': 'random', # reset (set phase to 0) or random
+                                  'selection': 'random', #fixed or random                           
+                                  'indices': range(num2perturb), # list of integers, indices to perturb, used only when selection='fixed' 
+                                  'num2perturb': 3,  # integer used only when selection is random
+                                  'size': 1, # float, std for perturbation, used only when type='random'
+                                  'IC': 0*np.random.rand(10)*np.pi*2} # initical condition for first, start in sync
+                    },
+            },
 
-for sweep in sweeps:
+
+sweeps_to_run=test_sweep
+
+
+for sweep in sweeps_to_run:
     print('******************************************************************')
     print("Unique to current sweep:")
-    try:
-        print(sweep['overwrite_default_parameters'])
-        print('******************************************************************')
-        learn.kuramoto_learn_function(sweep['loop_parameter'], # parameter to vary
-                                  sweep['loop_parameter_list'], # list of values for parameter
-                                  **sweep['overwrite_default_parameters'])
-    except:
-        print('None')
-        print('******************************************************************')
-        learn.kuramoto_learn_function(sweep['loop_parameter'], # parameter to vary
-                                  sweep['loop_parameter_list']) # list of values for parameter
-    
-    
+    #try:
+    print(sweep['overwrite_default_parameters'])
+    print('******************************************************************')
+    learn.kuramoto_learn_function(sweep['loop_parameter'], # parameter to vary
+                              sweep['loop_parameter_list'], # list of values for parameter
+                              **sweep['overwrite_default_parameters'])
+#    except:
+#        print('None')
+#        print('******************************************************************')
+#        learn.kuramoto_learn_function(sweep['loop_parameter'], # parameter to vary
+#                                  sweep['loop_parameter_list']) # list of values for parameter
+#    
+#    
 
     
     
@@ -133,7 +218,7 @@ kuramoto_learn_function(loop_parameter, # parameter to vary
                             print_results=True,
                             show_plots=False,
                             num_osc=10, # number of oscillators
-                            mu_freq=0.0, # mean natural frequency
+                            mu_freq=1.0, # mean natural frequency
                             sigma_freq=0.5,  #0.0001 # std natural frequency
                             p_erdos_renyi=0.5,  # probability of connection for erdos renyi
                             coupling_function=lambda x: np.sin(x), # coupling function

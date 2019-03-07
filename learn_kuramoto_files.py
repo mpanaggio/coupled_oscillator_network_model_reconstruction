@@ -1009,7 +1009,7 @@ def evaluate_f(testX1,fout,K,system_params, print_results=True,show_plots=False)
     system_params: dictionary with: 
                 'w': scalar or (n,1)
                 'A': (n,n)
-                'K': scalar 
+                'K': scalar - ignored
                 'Gamma': vectorized function
     print_results: boolean to determine if results should be displayed
     show_plots: boolean to determine if result should be plotted
@@ -1034,8 +1034,10 @@ def evaluate_f(testX1,fout,K,system_params, print_results=True,show_plots=False)
     correctF=system_params['Gamma'](x_for_fout)
     
     # find best scaling for coupling function
-    area_diff_func=lambda c: np.trapz(np.abs(c*predF-correctF),x_for_fout)
-    res=optimize.minimize_scalar(area_diff_func,bounds=(-100,100))
+    #area_diff_func=lambda c: np.trapz(np.abs(c*predF-correctF),x_for_fout)
+    #res=optimize.minimize_scalar(area_diff_func,bounds=(-100,100))
+    area_diff_func=lambda c: np.trapz(np.abs(c[0]+c[1]*predF-correctF),x_for_fout)
+    res=optimize.minimize(area_diff_func,x0=np.array([0,1]),bounds=[(-10,10),(-100,100)])
     c=res.x    
     # compute areas 
     
@@ -1053,7 +1055,7 @@ def evaluate_f(testX1,fout,K,system_params, print_results=True,show_plots=False)
     # display results
     if show_plots:
         plt.figure()
-        plt.plot(x_for_fout,c*predF,'blue')
+        plt.plot(x_for_fout,c[0]+c[1]*predF,'blue')
         plt.plot(x_for_fout,correctF,'red')
         plt.xlabel(r'Phase difference $\Delta\theta$',fontsize=FS)
         plt.ylabel(r'Coupling: $\Gamma(\Delta\theta)$',fontsize=FS)
@@ -1065,7 +1067,7 @@ def evaluate_f(testX1,fout,K,system_params, print_results=True,show_plots=False)
         print("Area between true coupling function and axis: %.5f" % (area_between_null_correctF))
         print("Area ratio: %.5f" % (area_ratio))
         print('')
-    return f_res
+    return f_res,c
 
 def evaluate_A(predA,system_params, print_results=True,show_plots=False, proportion_of_max=0.9):
     ''' 
