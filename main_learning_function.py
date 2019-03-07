@@ -125,7 +125,7 @@ def kuramoto_learn_function(loop_parameter, # parameter to vary
                 if isinstance(input_dict['n_epochs'],list):
                     print("Epochs:",n_epochs)
                 if isinstance(input_dict['tmax'],list):
-                    print("Tmax:",n_epochs)
+                    print("Tmax:",tmax)
                 print('')
                 print('Parameter {} out of {}'.format(k+1,len(loop_parameter_list)))
                 print('Network {} out of {}'.format(network,num_networks))
