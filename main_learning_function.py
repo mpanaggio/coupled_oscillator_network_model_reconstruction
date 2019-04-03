@@ -223,4 +223,4 @@ def kuramoto_learn_function(loop_parameter, # parameter to vary
                 pd.DataFrame(pd.Series(error_dict)).T.to_excel('validation_error_results_'+ filename_suffix +'.xlsx')
             
             if return_last_results:
-                return  predA,predw,fout,K,error_val
+                return  predA,predw,fout,K,error_val,system_params,solution_params,learning_params,c,testX1

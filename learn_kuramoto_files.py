@@ -532,8 +532,12 @@ def loss_sse(ypred,ytrue,A,c):
     Outputs:
     loss: loss value
     '''
+    #loss=tf.reduce_mean(tf.square(tf.subtract(ypred,ytrue)),
+    #                    name="loss")+c[0]*tf.abs(1-tf.reduce_max(A))+c[1]*tf.abs(tf.reduce_min(A))
+    fac=10000
     loss=tf.reduce_mean(tf.square(tf.subtract(ypred,ytrue)),
-                        name="loss")+c[0]*tf.abs(1-tf.reduce_max(A))+c[1]*tf.abs(tf.reduce_min(A))
+                        name="loss")+fac*(c[0]*tf.reduce_mean(tf.maximum(A-1,0))+c[1]*tf.reduce_mean(tf.maximum(-A,0)))
+    
     return loss
 
 def predict_phases(oldy,v,params):

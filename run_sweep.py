@@ -160,31 +160,30 @@ for pert_size in [0.01,0.1,1.0,10.0]:
 
 
 ## use this if you want to test out a single sweep with custom parameters
-test_sweep={'loop_parameter': 'coupling_function',
-            'loop_parameter_list':[lambda x: 0.383+1.379*np.sin(x+3.93)+0.568*np.sin(2*x+0.11)+0.154*np.sin(3*x+2.387),
-                                   lambda x: 1.379*np.sin(x+3.93)+0.568*np.sin(2*x+0.11)+0.154*np.sin(3*x+2.387)],
+test_sweep={'loop_parameter': 'p_erdos_renyi',
+            'loop_parameter_list': [0.1,0.5],
             'overwrite_default_parameters': {
-                    'coupling_function_names': ['Hodgkin-Huxley','Hodgkin-Huxley (0 mean)'],
-                    'num_attempts': 1, # number of times to attempt to learn from data for each network
-                    'num_networks': 1, # number of different networks for each parameter value
-                    'num_repeats': 20, # number of different networks for each parameter value
-                    'mu_freq': 1.0, # mean natural frequency
-                    'sigma_freq':0.1,  #0.0001 # std natural frequency
+                    #'coupling_function_names': ['Hodgkin-Huxley','Hodgkin-Huxley (0 mean)'],
+                    'num_attempts': 3, # number of times to attempt to learn from data for each network
+                    'num_networks': 5, # number of different networks for each parameter value
+                    #'num_repeats': 20, # number of different networks for each parameter value
+                    #'mu_freq': 1.0, # mean natural frequency
+                    #'sigma_freq':0.1,  #0.0001 # std natural frequency
                     'show_plots':True,
                     'save_results':True,
                     'with_pikovsky':False,
-                    'tmax': 5, # number of different networks for each parameter value
-                    'IC': {'type': 'random', # reset (set phase to 0) or random
-                                  'selection': 'random', #fixed or random                           
-                                  'indices': range(num2perturb), # list of integers, indices to perturb, used only when selection='fixed' 
-                                  'num2perturb': 3,  # integer used only when selection is random
-                                  'size': 1, # float, std for perturbation, used only when type='random'
-                                  'IC': 0*np.random.rand(10)*np.pi*2} # initical condition for first, start in sync
+                    #'tmax': 5, # number of different networks for each parameter value
+#                    'IC': {'type': 'random', # reset (set phase to 0) or random
+#                                  'selection': 'random', #fixed or random                           
+#                                  'indices': range(num2perturb), # list of integers, indices to perturb, used only when selection='fixed' 
+#                                  'num2perturb': 3,  # integer used only when selection is random
+#                                  'size': 1, # float, std for perturbation, used only when type='random'
+#                                  'IC': 0*np.random.rand(10)*np.pi*2} # initical condition for first, start in sync
                     },
             },
 
 
-sweeps_to_run=sweeps[0:]
+sweeps_to_run=test_sweep
 
 
 for sweep in sweeps_to_run:
