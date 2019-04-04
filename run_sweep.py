@@ -159,12 +159,18 @@ for pert_size in [0.01,0.1,1.0,10.0]:
 
 
 
+
+# %% set random seed for repeatability
+global global_seed
+global_seed=-1 # Use -1 when not testing.
+if global_seed>0:
+    np.random.seed(global_seed)  
 ## use this if you want to test out a single sweep with custom parameters
 test_sweep={'loop_parameter': 'p_erdos_renyi',
-            'loop_parameter_list': [0.1,0.5],
+            'loop_parameter_list':[0.1],
             'overwrite_default_parameters': {
-                    #'coupling_function_names': ['Hodgkin-Huxley','Hodgkin-Huxley (0 mean)'],
-                    'num_attempts': 3, # number of times to attempt to learn from data for each network
+                    #'coupling_function_names': ['Square wave'],
+                    'num_attempts': 1, # number of times to attempt to learn from data for each network
                     'num_networks': 5, # number of different networks for each parameter value
                     #'num_repeats': 20, # number of different networks for each parameter value
                     #'mu_freq': 1.0, # mean natural frequency
@@ -172,6 +178,8 @@ test_sweep={'loop_parameter': 'p_erdos_renyi',
                     'show_plots':True,
                     'save_results':True,
                     'with_pikovsky':False,
+                    #'n_coefficients':10, # number of harmonics
+                    'global_seed':global_seed,
                     #'tmax': 5, # number of different networks for each parameter value
 #                    'IC': {'type': 'random', # reset (set phase to 0) or random
 #                                  'selection': 'random', #fixed or random                           
@@ -183,9 +191,8 @@ test_sweep={'loop_parameter': 'p_erdos_renyi',
             },
 
 
+# %% set random seed for repeatability 
 sweeps_to_run=test_sweep
-
-
 for sweep in sweeps_to_run:
     print('******************************************************************')
     print("Unique to current sweep:")
@@ -195,8 +202,8 @@ for sweep in sweeps_to_run:
         learn.kuramoto_learn_function(sweep['loop_parameter'], # parameter to vary
                                   sweep['loop_parameter_list'], # list of values for parameter
                                   **sweep['overwrite_default_parameters'])
-    except:
-        print('None')
+    except Exception as e:
+        print(e)
         print('******************************************************************')
         learn.kuramoto_learn_function(sweep['loop_parameter'], # parameter to vary
                                   sweep['loop_parameter_list']) # list of values for parameter

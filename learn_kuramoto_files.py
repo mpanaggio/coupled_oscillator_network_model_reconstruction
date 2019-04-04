@@ -18,8 +18,6 @@ from scipy.sparse import csr_matrix, lil_matrix,vstack,hstack
 from scipy.sparse.linalg import spsolve
 import scipy.signal as sp
 
-
-
 def random_erdos_renyi_network(num_osc,p_value=0.5,seed=-1):
     ''' 
     random_erdos_renyi_network(num_oscillators,p_value,seed): 
@@ -713,9 +711,11 @@ def learn_model(params,trainX1,trainX2,trainY,testX1,testX2,testY):
     batch_size=params['batch_size']
     n_oscillators=params['n_oscillators']
     method=params['prediction_method']
+    global_seed=params['global_seed']
     # contruct model
     tf.reset_default_graph()
-
+    if global_seed>0:
+        tf.set_random_seed(global_seed)
     # initialize placeholders for inputs
     X1 = tf.placeholder(dtype=tf.float32, shape=(None,n_oscillators,n_oscillators,1), name="X1")
     X2 = tf.placeholder(dtype=tf.float32, shape=(None,n_oscillators), name="X2")
@@ -740,7 +740,7 @@ def learn_model(params,trainX1,trainX2,trainY,testX1,testX2,testY):
     K=tf.Variable(tf.random_normal(shape=(1,),mean=1,stddev=1/n_oscillators,dtype=tf.float32),name='K') 
     
     
-    c=0.1*np.array([1.0,1.0]) # regularization parameters for A matrix
+    c=np.array([1.0,1.0]) # regularization parameters for A matrix
     
     ## compute phase velocities
     v,fout=get_vel(A,omega,K,X1,params)
@@ -838,9 +838,11 @@ def learn_model_vel(params,trainX1,trainX2,trainY,testX1,testX2,testY):
     batch_size=params['batch_size']
     n_oscillators=params['n_oscillators']
     method=params['prediction_method']
+    global_seed=params['global_seed']
     # contruct model
     tf.reset_default_graph()
-
+    if global_seed>0:
+        tf.set_random_seed(global_seed) # remove this later
     # initialize placeholders for inputs
     X1 = tf.placeholder(dtype=tf.float32, shape=(None,n_oscillators,n_oscillators,1), name="X1")
     X2 = tf.placeholder(dtype=tf.float32, shape=(None,n_oscillators), name="X2")
@@ -865,7 +867,7 @@ def learn_model_vel(params,trainX1,trainX2,trainY,testX1,testX2,testY):
     K=tf.Variable(tf.random_normal(shape=(1,),mean=1,stddev=1/n_oscillators,dtype=tf.float32),name='K') 
     
     
-    c=0*np.array([1.0,1.0]) # regularization parameters for A matrix
+    c=np.array([1.0,1.0]) # regularization parameters for A matrix
     
     ## compute phase velocities
     v,fout=get_vel(A,omega,K,X1,params)
@@ -906,14 +908,12 @@ def learn_model_vel(params,trainX1,trainX2,trainY,testX1,testX2,testY):
     with tf.name_scope("eval"):
         error=loss_sse(velpred,y,A,np.array([0.0,0.0])) # no Aij error away from 0,1
         
-    
     init=tf.global_variables_initializer()
-    
+
     
     ## initialize variables and optimize variables
     with tf.Session() as sess:
         init.run()
-
         ## loop for batch gradient descent
         for epoch in range(n_epochs):
             for X1_batch,X2_batch, y_batch in shuffle_batch(add_dim(trainX1), trainX2,trainY, batch_size):
@@ -1092,6 +1092,7 @@ def evaluate_A(predA,system_params, print_results=True,show_plots=False, proport
     A_res: series with labeled results
     
     '''
+    #print("predA:",predA,type(predA))
     FS=16 # fontsize
     correctA=system_params['A']
     pos_label=1.0 # determines which label is considered a positive.
@@ -1100,6 +1101,7 @@ def evaluate_A(predA,system_params, print_results=True,show_plots=False, proport
                                          pos_label=pos_label,
                                          drop_intermediate=False)
     roc_auc = auc(fpr, tpr)
+    #print("roc_auc:",roc_auc,type(roc_auc))
     warnings.filterwarnings('ignore')
     f1_scores=np.array([f1_score(remove_diagonal(correctA,1),1*(remove_diagonal(predA,1)>thr)) for thr in thresholds])
     warnings.filterwarnings('default')
@@ -1124,7 +1126,7 @@ def evaluate_A(predA,system_params, print_results=True,show_plots=False, proport
         print('Evaluating adjacency matrix:')   
         print('')
         print('Errors: %d out of %d' % (n_errors,(num_osc*(num_osc-1)/2)))
-        print('Error rate: %.5f%%' % (n_errors/(num_osc*(num_osc-1)/2)*100))
+        print('Error rate: %.5f%%' % (n_errors/(num_osc*(num_osc-1.0)/2.0)*100.0))
         print('Area under ROC curve: %.5f' % (roc_auc))
         print('Best f1 score: %.5f' %(optimal_f1))
         print('Threshold for best f1 score: %.5f' %(optimal_threshold))

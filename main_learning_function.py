@@ -7,6 +7,7 @@ import pandas as pd
 import time
 imp.reload(lk)
 
+
 def kuramoto_learn_function(loop_parameter, # parameter to vary
                             loop_parameter_list, # list of values for parameter
                             return_last_results=False, # return predicted values for last run
@@ -32,7 +33,8 @@ def kuramoto_learn_function(loop_parameter, # parameter to vary
                             n_epochs=300, 
                             batch_size=100,
                             n_coefficients=5, # number of harmonics
-                            IC={}, # initial condition information                            
+                            IC={}, # initial condition information  
+                            global_seed=-1
                             ):
                             
 
@@ -45,7 +47,6 @@ def kuramoto_learn_function(loop_parameter, # parameter to vary
     timestr = time.strftime("%Y%m%d-%H%M%S")
     filename_suffix=str(loop_parameter) +'_sweep_'+ str(timestr)
     
-    random_seed=-1
     ##############################################################################
     ## initialize result dataframes
     w_df=pd.DataFrame()
@@ -64,12 +65,13 @@ def kuramoto_learn_function(loop_parameter, # parameter to vary
                 curname=coupling_function_names[k]
             else:
                 curname=coupling_function_names[0]
-            system_params={'w': lk.random_natural_frequencies(input_dict['num_osc'],mu= input_dict['mu_freq'],sigma=input_dict['sigma_freq'],seed=random_seed),
-                        'A': lk.random_erdos_renyi_network(input_dict['num_osc'],p_value=input_dict['p_erdos_renyi'],seed=random_seed),
+            system_params={'w': lk.random_natural_frequencies(input_dict['num_osc'],mu= input_dict['mu_freq'],sigma=input_dict['sigma_freq']),
+                        'A': lk.random_erdos_renyi_network(input_dict['num_osc'],p_value=input_dict['p_erdos_renyi']),
                         'K': 1.0,
                         'Gamma': input_dict['coupling_function'],
                         'Gamma string': curname,
-                        'other': str(parameter)}
+                        'other': str(parameter),
+                        'global_seed': global_seed}
             if any(input_dict['IC']):
                 system_params['IC']=input_dict['IC']
             if isinstance(input_dict['tmax'],list):
@@ -82,7 +84,8 @@ def kuramoto_learn_function(loop_parameter, # parameter to vary
                              'noise': input_dict['noise_level'],
                              'dynamic noise': input_dict['dynamic_noise_level'],
                              'ts_skip': 1, # don't skip timesteps
-                             'num_repeats': input_dict['num_repeats']
+                             'num_repeats': input_dict['num_repeats'],
+                             'global_seed': global_seed
                              }
             if isinstance(input_dict['n_epochs'],list):
                 n_epochs=input_dict['n_epochs'][k]
@@ -100,6 +103,7 @@ def kuramoto_learn_function(loop_parameter, # parameter to vary
                              'prediction_method': input_dict['method'],
                              'velocity_fit': input_dict['with_vel'],
                              'pikovsky_method': input_dict['with_pikovsky'],
+                             'global_seed': global_seed
                              }
             
         ## generate training data
@@ -172,8 +176,9 @@ def kuramoto_learn_function(loop_parameter, # parameter to vary
                 
             ## display results
                 f_res,c=lk.evaluate_f(testX1,fout,K,system_params, print_results=print_results,show_plots=show_plots)
-                A_res=lk.evaluate_A(predA,system_params, proportion_of_max=0.9,print_results=print_results,show_plots=show_plots)
-                
+                A_res=lk.evaluate_A(K*predA,system_params, proportion_of_max=0.9,print_results=print_results,show_plots=show_plots)
+                #print("K:",K)
+                #print("c (fout):",c)
                 ''' 
                 The coupling function is assumed to have mean 0.  
                 For functions with nonzero mean c0, the computed frequencies 
