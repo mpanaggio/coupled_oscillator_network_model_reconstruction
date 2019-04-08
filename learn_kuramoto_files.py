@@ -532,9 +532,10 @@ def loss_sse(ypred,ytrue,A,c):
     '''
     #loss=tf.reduce_mean(tf.square(tf.subtract(ypred,ytrue)),
     #                    name="loss")+c[0]*tf.abs(1-tf.reduce_max(A))+c[1]*tf.abs(tf.reduce_min(A))
-    fac=10000
+    fac=100
     loss=tf.reduce_mean(tf.square(tf.subtract(ypred,ytrue)),
-                        name="loss")+fac*(c[0]*tf.reduce_mean(tf.maximum(A-1,0))+c[1]*tf.reduce_mean(tf.maximum(-A,0)))
+                        name="loss")+fac*(c[0]*tf.reduce_mean(tf.maximum(A-1,0))+c[1]*tf.reduce_mean(tf.maximum(-A,0))) +10**(-6)*(
+                                tf.reduce_mean(tf.square(A))+tf.reduce_mean(tf.square(1-A)))
     
     return loss
 

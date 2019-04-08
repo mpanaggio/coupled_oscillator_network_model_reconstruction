@@ -176,7 +176,7 @@ def kuramoto_learn_function(loop_parameter, # parameter to vary
                 
             ## display results
                 f_res,c=lk.evaluate_f(testX1,fout,K,system_params, print_results=print_results,show_plots=show_plots)
-                A_res=lk.evaluate_A(K*predA,system_params, proportion_of_max=0.9,print_results=print_results,show_plots=show_plots)
+                A_res=lk.evaluate_A(predA,system_params, proportion_of_max=0.9,print_results=print_results,show_plots=show_plots)
                 #print("K:",K)
                 #print("c (fout):",c)
                 ''' 

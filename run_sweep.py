@@ -64,18 +64,18 @@ sweeps=[
           
          ## sweep: frequency standard deviation
          {'loop_parameter': 'sigma_freq',
-         'loop_parameter_list': [0.01,0.1,1.0,10.0],
+         'loop_parameter_list': [0.01,0.1,1.0],
          'overwrite_default_parameters': {'n_epochs': 1000}
          },
                                                   
         ## sweep: noise_level
          {'loop_parameter': 'noise_level',
-         'loop_parameter_list': [0,0.00001,0.0001,0.001,0.01,0.1]
+         'loop_parameter_list': [0,0.00001,0.0001,0.001,0.01,0.1,1]
          },
         
         ## sweep: dynamic noise_level
          {'loop_parameter': 'dynamic_noise_level',
-         'loop_parameter_list': [0,0.00001,0.0001,0.001,0.01,0.1]
+         'loop_parameter_list': [0,0.00001,0.0001,0.001,0.01,0.1,1]
          },
          
 
@@ -192,7 +192,7 @@ test_sweep={'loop_parameter': 'p_erdos_renyi',
 
 
 # %% set random seed for repeatability 
-sweeps_to_run=test_sweep
+sweeps_to_run=sweeps
 for sweep in sweeps_to_run:
     print('******************************************************************')
     print("Unique to current sweep:")
