@@ -1,14 +1,6 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Mar  6 13:50:02 2019
-
-@author: mpanaggio
-"""
-#import warnings
-#warnings.filterwarnings("ignore",category=DeprecationWarning)
-#warnings.filterwarnings("ignore",category=PendingDeprecationWarning)
-#warnings.filterwarnings("ignore",category=FutureWarning)
-
+'''
+This script runs the sweeps outlined in the paper.
+'''  
 
 import sys
 import warnings
@@ -23,7 +15,7 @@ import main_learning_function as learn
 
 sweeps=[  
 ###############################################################################
-## old sweeps to run 
+## parameter sweeps to run 
 ###############################################################################
          ## sweep: coupling functions
          {'loop_parameter': 'coupling_function',
@@ -80,7 +72,7 @@ sweeps=[
          
 
 ###############################################################################
-## new sweeps to run 
+## comparison sweeps to run 
 ###############################################################################
          ## sweep: number of restarts (with pikovsky)
          {'loop_parameter': 'num_repeats',
@@ -192,7 +184,7 @@ test_sweep={'loop_parameter': 'p_erdos_renyi',
 
 
 # %% set random seed for repeatability 
-sweeps_to_run=sweeps
+sweeps_to_run=test_sweep  # use sweeps to repeat experiments
 for sweep in sweeps_to_run:
     print('******************************************************************')
     print("Unique to current sweep:")

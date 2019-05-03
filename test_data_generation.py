@@ -1,17 +1,13 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Feb 20 12:54:50 2019
+'''
+This script runs generates a single data set and reconstructs the model with 
+detailed plots of the results to verify that the dynamics behave as expected.
+'''  
 
-@author: mpanaggio
-"""
 
 
 import learn_kuramoto_files as lk
 import numpy as np
 import importlib as imp
-import pandas as pd
-import time
-from scipy import signal
 import matplotlib.pyplot as plt
 imp.reload(lk)
 
@@ -31,13 +27,13 @@ dt=0.1     # time step for numerical solution
 tmax=1000*dt    # maximum time for numerical solution
 noise_level=0.0 # post solution noise added
 dynamic_noise_level=0.00 # post solution noise added
-num_repeats=1#10 # number of restarts for numerical solution
+num_repeats=2#10 # number of restarts for numerical solution
 num_attempts=1#5 # number of times to attempt to learn from data for each network
 num_networks=1#10 # number of different networks for each parameter value
 method='euler' #'rk2','rk4','euler',
 with_vel=False
 ## Note: the  loop parameter value will overwrite the value above
-
+parameter=None
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -52,8 +48,8 @@ for network in range(1,num_networks+1):
             #'IC': np.random.rand(num_osc)*np.pi*2, # fixed initial condition for each repeat
             'IC': {'type': 'reset', # reset (set phase to 0) or random
                    'selection': 'fixed', #fixed or random
-                   'num2perturb': 1,  # integer used only when selection is random
-                   'indices': [0], # list of integers, used only when selection='fixed' 
+                   'num2perturb': 3,  # integer used only when selection is random
+                   'indices': [0,1,2], # list of integers, used only when selection='fixed' 
                    'size': 2, # float, used only when type='random'
                    'IC': 0*np.random.rand(num_osc)*np.pi*2} # initical condition for first repeat
             }
@@ -88,7 +84,6 @@ for network in range(1,num_networks+1):
         
         cur_t=t+rep*tmax
         cur_phases=phases[rep*n_ts:(rep+1)*n_ts]
-        #lk.plot_ode_results(t,phases[rep*n_ts:(rep+1)*n_ts],figsize=(20,5),fontsize=16)
         R,Psi=lk.get_op(cur_phases)
         plt.subplot(1,3,1)
         plt.plot(cur_t,cur_phases)

@@ -1,4 +1,7 @@
-  
+'''
+This module contains the function used for network recontstruction.  
+See run_sweep.py for a usage example
+'''  
 import learn_kuramoto_files as lk
 import numpy as np
 import importlib as imp

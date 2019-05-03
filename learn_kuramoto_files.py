@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-"""
-Spyder Editor
-
-This is a temporary script file.
-"""
+'''
+This module contains the auxiliary functions used for network recontstruction  
+and for evaluation of the results.
+'''  
 import numpy as np
 from scipy.integrate import solve_ivp
 from scipy import optimize
@@ -158,8 +156,22 @@ def solve_kuramoto_ode_with_noise(dt,params,tmax=500.0,D=0.0):
 
 
 def solve_ivp_stochastic_rk2(dydt,T,IC,D):
-# Uses RK2 (improved Euler) with gaussian white noise
-# D is the noise level
+    ''' 
+    (dydt,T,IC,D): 
+        Solve the stocastic ode given by dy=dydt(y) dt+D sqrt(dt)
+    
+    Inputs:
+    IC: numpy matrix (1,num_osc)
+    dydt: function
+    T: numpy array of times
+    D: scalar (noise level)
+       
+    Outputs:  
+    newy: magnitude of order parameter (num_timesteps,1)
+    Psi: angle of order parameter (num_timesteps,1)
+    ''' 
+    # Uses RK2 (improved Euler) with gaussian white noise
+    # D is the noise level
     dt=0.05
     t=np.arange(T.min(),T.max()+dt,dt).reshape(-1,1)
     f=lambda y: dydt(0,y)
@@ -170,14 +182,26 @@ def solve_ivp_stochastic_rk2(dydt,T,IC,D):
         newy=rkstep(f,oldy,dt,D)
         Y[k+1,:]=newy.squeeze()
         oldy=newy
-    #print(t.squeeze().shape,Y.shape)
     f = interpolate.interp1d(t.squeeze(), Y,axis=0)   
-    #print(f(T.squeeze()).shape)
     return T,f(T.squeeze())
 
 def rkstep(f,y,dt,D):
-# See  Honeycutt - Stochastic Runge-Kutta Algorithms I White Noise - 1992 -
-# Phys Rev A
+    ''' 
+    rkstep(f,y,dt,D): 
+        Compute a single step for the stochastic ode descrived by dy=f(y)dt+D sqrt(dt)
+    
+    Inputs:
+    y: numpy matrix (1,num_osc)
+    f: function
+    dt: scalar (timestep)
+    D: scalar (noise level)
+       
+    Outputs:  
+    newy: magnitude of order parameter (num_timesteps,1)
+    Psi: angle of order parameter (num_timesteps,1)
+    ''' 
+    # See  Honeycutt - Stochastic Runge-Kutta Algorithms I White Noise - 1992 -
+    # Phys Rev A
     psi=np.random.randn(y.shape[1]);
     k1=f(y.T).T
     k2=f((y+dt*k1+np.sqrt(2*D*dt)*psi).T).T
@@ -301,17 +325,33 @@ def generate_data(system_params,solution_params={'dt': 0.1,
             new=np.vstack((new,new_tmp[range(0,n_ts,skip),:]))
     return old, new
 def get_perturbation(y,perturbation_params,system_params):
+    '''
+    get_perturbation(y,perturbation_params,system_params):
+        compute phase perturbation of given type
     
+    Inputs:
+    y: numpy matrix (1,num_osc) of phases
+    perturbation_params: distionary with:
+                    'selection': 'fixed' or 'random'
+                    'indices': list of indices (used only with fixed)
+                    'num2perturb': integer (used only with random)
+                    'type': 'reset' or 'random'
+    system_params: dictionary with: 
+                    'w': scalar or (n,1)
+                    'A': (n,n)
+                    'K': scalar 
+                    'Gamma': vectorized function
+        
+    '''
     num_osc=system_params['w'].shape[0]
     pert=np.zeros(num_osc)
-    #print(perturbation_params)
+
     ## we can either perturb a particular set of oscillators or a randomly selected set.
     if perturbation_params['selection']=='fixed':
         inds=perturbation_params['indices']
     else:
         inds=np.random.choice(range(num_osc),size=perturbation_params['num2perturb'],replace=False)
     ## we can either perturb by resetting phases to 0 or by adding a random perturbation
-    #print(inds)
     if perturbation_params['type']=='reset':
         pert[inds]=-y[inds]
     else:
@@ -410,8 +450,6 @@ def generate_data_vel(system_params,solution_params={'dt': 0.1,
         y=y+noise*np.random.randn(y.shape[0],y.shape[1])
         deriv,phases=central_diff(t,y,with_filter=True,truncate=False,return_phases=True)
         n_ts=len(t)-2
-        #print(phases[range(1,n_ts+1,skip),:])
-        #print(deriv[range(1,n_ts+1,skip),:])
         t=t[range(1,n_ts,skip)]
         if k==0:
             phases_all=phases[range(1,n_ts+1,skip),:]
