@@ -27,7 +27,7 @@ dt=0.1     # time step for numerical solution
 tmax=1000*dt    # maximum time for numerical solution
 noise_level=0.0 # post solution noise added
 dynamic_noise_level=0.00 # post solution noise added
-num_repeats=2#10 # number of restarts for numerical solution
+num_repeats=10#10 # number of restarts for numerical solution
 num_attempts=1#5 # number of times to attempt to learn from data for each network
 num_networks=1#10 # number of different networks for each parameter value
 method='euler' #'rk2','rk4','euler',
@@ -108,3 +108,44 @@ for network in range(1,num_networks+1):
                 ylim=ax.get_ylim()
                 ax.axvline(x=rep*tmax,ymin=ylim[0],ymax=ylim[1],color='k',linestyle='--')
     plt.show()
+
+train_model=True
+if train_model:
+    n_epochs=100
+    batch_size=100
+    n_coefficients=5 # number of harmonics
+    method='rk4' #'rk2','rk4','euler',
+    with_vel=True
+    print_results=True
+    show_plots=True
+    learning_params={'learning_rate': 0.005,
+                             'n_epochs': n_epochs, 
+                             'batch_size':batch_size,
+                             'n_oscillators':num_osc,
+                             'dt':dt,
+                             'n_coefficients': n_coefficients,
+                             'reg':0.0001,
+                             'prediction_method': method,
+                             'velocity_fit': with_vel,
+                             'pikovsky_method': False,
+                             'global_seed': random_seed
+                             }
+    trainX1,trainX2,trainY,testX1,testX2,testY=lk.get_training_testing_data(
+                    phases,vel,split_frac=0.8)
+    predA,predw,fout,K,error_val=lk.learn_model_vel(learning_params,trainX1,trainX2,trainY,testX1,testX2,testY)
+    if K<0:
+        fout=fout*(-1.0)
+        K=-K
+    f_res,c=lk.evaluate_f(testX1,fout,K,system_params, print_results=print_results,show_plots=show_plots)
+    A_res=lk.evaluate_A(predA,system_params, proportion_of_max=0.9,print_results=print_results,show_plots=show_plots)
+    ''' 
+    The coupling function is assumed to have mean 0.  
+    For functions with nonzero mean c0, the computed frequencies 
+    will be: predw=truew+K(N_j)/N*c0 rather than w where N_j is the number of 
+    links for the given oscillator.
+    
+    We therefore modify the frequencies as follows
+    '''
+    Nj=(predA/c[1]).sum(axis=0)
+    predw=predw-K*Nj*c[0]/num_osc
+    w_res=lk.evaluate_w(predw,system_params, print_results=print_results)
