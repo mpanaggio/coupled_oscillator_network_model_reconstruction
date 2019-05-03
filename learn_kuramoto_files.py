@@ -1104,7 +1104,7 @@ def evaluate_A(predA,system_params, print_results=True,show_plots=False, proport
     roc_auc = auc(fpr, tpr)
     #print("roc_auc:",roc_auc,type(roc_auc))
     warnings.filterwarnings('ignore')
-    f1_scores=np.array([f1_score(remove_diagonal(correctA,1),1*(remove_diagonal(predA,1)>thr)) for thr in thresholds])
+    f1_scores=np.array([f1_score(remove_diagonal(correctA,1),1*(remove_diagonal(predA,1)>thr),average='binary') for thr in thresholds])
     warnings.filterwarnings('default')
     optimal_f1=np.max(f1_scores)
     optimal_threshold=thresholds[np.argmax(f1_scores)]

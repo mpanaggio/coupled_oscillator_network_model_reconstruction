@@ -37,7 +37,7 @@ num_networks=1#10 # number of different networks for each parameter value
 method='euler' #'rk2','rk4','euler',
 with_vel=False
 ## Note: the  loop parameter value will overwrite the value above
-
+parameter='nothing'
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -50,12 +50,12 @@ for network in range(1,num_networks+1):
             'Gamma': coupling_function,
             'other': str(parameter),
             #'IC': np.random.rand(num_osc)*np.pi*2, # fixed initial condition for each repeat
-            'IC': {'type': 'reset', # reset (set phase to 0) or random
-                   'selection': 'fixed', #fixed or random
-                   'num2perturb': 1,  # integer used only when selection is random
-                   'indices': [0], # list of integers, used only when selection='fixed' 
-                   'size': 2, # float, used only when type='random'
-                   'IC': 0*np.random.rand(num_osc)*np.pi*2} # initical condition for first repeat
+#            'IC': {'type': 'reset', # reset (set phase to 0) or random
+#                   'selection': 'fixed', #fixed or random
+#                   'num2perturb': 1,  # integer used only when selection is random
+#                   'indices': [0], # list of integers, used only when selection='fixed' 
+#                   'size': 2, # float, used only when type='random'
+#                   'IC': 0*np.random.rand(num_osc)*np.pi*2} # initical condition for first repeat
             }
     
     solution_params={'dt':dt,
