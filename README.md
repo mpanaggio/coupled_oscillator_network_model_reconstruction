@@ -6,3 +6,5 @@ This repository contains code from the paper Model reconstruction from temporal 
 The file run_reconstruction_sweeps.py can be used to reproduce the results from the paper.  The results for each sweep are exported to a .xls file. 
 
 The file run_single_case.py can be used to run a single reconstruction with plots of the generated time series. 
+
+The remaining files contain functions caleld by the scripts described above.
